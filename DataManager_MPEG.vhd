@@ -47,6 +47,7 @@ entity DataManager_NOC is
     );
 	 
     port(
+    -- Basic
 		clock               : in  std_logic;
         reset               : in  std_logic;
 		  
@@ -59,26 +60,15 @@ entity DataManager_NOC is
         rx                  : in  std_logic;
         data_in             : in  regflit;
         credit_o            : out std_logic;
-		  
- 	-- Debug MC
-        write_enable_debug  : out std_logic; 
-        data_out_debug      : out std_logic_vector(31 downto 0);
-        busy_debug          : in  std_logic;
-        
-    -- Dynamic Insertion of Applications
-        ack_app             : out std_logic;
-        req_app             : in  std_logic_vector(31 downto 0);
-
-    -- External Memory
-        address             : out std_logic_vector(29 downto 0);
-        data_read           : in  std_logic_vector(31 downto 0);
-		  
-	 -- Enable Control
-		injectionEnable     : in std_logic
     );
 end DataManager_NOC;
 
 architecture MPEG of DataManager_NOC is
+
+    -- Mimics the communication flow of the MPEG app: (Thread 4 sends 100 messages 128 flits wide each to thread 2, ...)
+
+    --  100x128      100x64       100x64       100x64       100x64    (Amount of messages * Amount of flits)
+    --    (4)    ->    (2)    ->    (1)    ->    (0)    ->    (3)     (ThreadID)
 
     signal semaphore    : integer range -100 to 99;  -- Controls message flow 
     signal sendCount    : integer range 0 to 128;    -- Counter for total messages received
@@ -102,28 +92,31 @@ begin
                 flitCount := 0;
                 sendCount <= 0;
                 receiveCount <= 0;
+                credit_o <= '1'; -- Always available
 
-                -- TODO: Read file to determine network position, allocated task and thread Id's 
                 if threadID = 0 then
+
                     -- Target thread is 3
                     receiveSize <= 64;
                     transmitSize <= 64;
                 elsif threadID = 1 then
+
                     -- Target thread is 0
                     receiveSize <= 64;
                     transmitSize <= 64;
                 elsif threadID = 2 then
+
                     -- Target thread is 1
                     receiveSize <= 128; 
                     transmitSize <= 64;
                 elsif threadID = 3 then
+
                     -- No target thread
-                    -- Only receives messages from thread 0
                     receiveSize <= 64;
                     transmitSize <= 0;
                 elsif threadID = 4 then
+
                     -- Target thread is 2
-                    -- Only transmits to thread 2
                     receiveSize <= 0;
                     transmitSize <= 128;
                 end if;
@@ -132,13 +125,14 @@ begin
                 case state is
                     when S0 =>
                         if data_in = netPos and rx = '1' then
+
                             -- New message incoming
-                            -- Target flit
                             currentState <= S1;
                             flitCount := flitCount + 1;
                         end if;
                     when S1 =>
-                        -- 
+
+                        -- Holds on this state until whole message is received
                         if rx = '1' then
                             flitCount := flitCount + 1;
                         end if;
@@ -150,6 +144,8 @@ begin
                             flitCount := 0;
                         end if;
                     when S2 => 
+
+                        -- End of message
                         receiveCount <= receiveCount + 1;
                         semaphore <= semaphore + 1;
                         currentState <= S0;
@@ -173,55 +169,91 @@ begin
                     case currentState is
                         when S0 => -- flit <= message target
                             if threadID /= 3 then
-                                data_out <= std_logic_vector(targetPos, data_out'length);
-                                tx <= '1';
-                                currentState <= S1;
-                                flitCount := flitCount + 1;
+
+                                if credit_i = '1' then
+                                    data_out <= std_logic_vector(targetPos, data_out'length);
+                                    tx <= '1';
+                                    currentState <= S1;
+                                    flitCount := flitCount + 1;
+                                else 
+                                    currentState <= S0;
+                                end if;
+
                             else -- if threadID = 3 transmits nothing, holds on S0
                                 currentState <= S0;
                             end if;
 
                         when S1 => -- flit <= message size
-                            data_out <= std_logic_vector(messageSize, data_out'length);
-                            tx <= '1';
-                            currentState <= S2;
+                            if credit_i = '1' then
+                                data_out <= std_logic_vector(messageSize, data_out'length);
+                                tx <= '1';
+                                currentState <= S2;
+                                flitCount := flitCount + 1;
+                            else 
+                                currentState <= S1;
+                            end if;
                         when S2 => -- flit <= payload (Source Processor)
-                            data_out <= std_logic_vector(PEPos, data_out'length);
-                            tx <= '1';
-                            currentState <= S3;
-                            flitCount := flitCount + 1;
-                        when S3 => -- flit <= payload (Message target thread) (Doesnt actually match HERMES behavior, cant know ID of thread (page ID, between 1 and 3), transmits ID of app target thread instead)
-                            data_out <= std_logic_vector(targetThread, data_out'length);
-                            tx <= '1';
-                            currentState <= S4;
-                            flitCount := flitCount + 1;
-                        when S4 => -- flit <= payload (Message source thread) (Cant know thread id (Page ID between 1 and 3), transmits ID of app source thread)
-                            data_out <= std_logic_vector(threadID, data_out'length);
-                            tx <= '1';
-                            currentState <= S5;
-                            flitCount := flitCount + 1;
-                        when S5 => -- flit <= payload (Payload size)
-                            data_out <= std_logic_vector(messageSize - 2, data_out'length); 
-                            tx <= '1';
-                            currentState <= S6;
-                            flitCount := flitCount + 1;
-                        when S6 => -- flit <= message (amount of messages sent by this PE)
-                            data_out <= std_logic_vector(sendCount, data_out'length);
-                            tx <= '1';
-                            currentState <= S7;
-                            flitCount := flitCount + 1;
-                        when S7 => 
-                            data_out <= (others => '0');
-                            tx <= '1';
-                            flitCount := flitCount + 1;
-
-                            if (flitCount < transmitSize) then
-                                currentState <= S7;
+                            if credit_i = '1' then
+                                data_out <= std_logic_vector(PEPos, data_out'length);
+                                tx <= '1';
+                                currentState <= S3;
+                                flitCount := flitCount + 1;
                             else
-                                currentState <= S8;
+                                currentState <= S2;
+                            end if;
+                        when S3 => -- flit <= payload (Message target thread) (Doesnt actually match HERMES behavior, cant know ID of thread (page ID, between 1 and 3), transmits ID of app target thread instead)
+                            if credit_i = '1' then
+                                data_out <= std_logic_vector(targetThread, data_out'length);
+                                tx <= '1';
+                                currentState <= S4;
+                                flitCount := flitCount + 1;
+                            else
+                                currentState <= S3;
+                            end if;
+                        when S4 => -- flit <= payload (Message source thread) (Cant know thread id (Page ID between 1 and 3), transmits ID of app source thread)
+                            if credit_i = '1' then
+                                data_out <= std_logic_vector(threadID, data_out'length);
+                                tx <= '1';
+                                currentState <= S5;
+                                flitCount := flitCount + 1;
+                            else 
+                                currentState <= S4;
+                            end if;
+                        when S5 => -- flit <= payload (Payload size)
+                            if credit_i = '1' then
+                                data_out <= std_logic_vector(messageSize - 2, data_out'length); 
+                                tx <= '1';
+                                currentState <= S6;
+                                flitCount := flitCount + 1;
+                            else
+                                currentState <= S5;
+                            end if;
+                        when S6 => -- flit <= message (amount of messages sent by this PE)
+                            if credit_i = '1' then
+                                data_out <= std_logic_vector(sendCount, data_out'length);
+                                tx <= '1';
+                                currentState <= S7;
+                                flitCount := flitCount + 1;
+                            else
+                                currentState <= S6;
+                            end if;
+                        when S7 => 
+                            if credit_i = '1' then
+                                data_out <= (others=>'0');
+                                tx <= '1';
+                                flitCount := flitCount + 1;
+
+                                if (flitCount < transmitSize) then
+                                    currentState <= S7;
+                                else
+                                    currentState <= S8;
+                                end if;
+                            else 
+                                currentState <= S7;
                             end if;
                         when S8 => 
                             semaphore <= semaphore - 1;
+                            sendCount <= sendCount + 1;
                             currentState <= S0;
                     end case;
                 end if;
