@@ -80,7 +80,7 @@ end DataManager_NOC;
 
 architecture MPEG of DataManager_NOC is
 
-    signal semaphore    : integer range -100 to 99; -- Controls message flow 
+    signal semaphore    : integer range -100 to 99;  -- Controls message flow 
     signal sendCount    : integer range 0 to 128;    -- Counter for total messages received
     signal receiveCount : integer range 0 to 128;    -- Counter for total messages sent
     signal receiveSize  : integer range 0 to 128;    -- Number of flits to be received in a message
@@ -115,7 +115,7 @@ begin
                 elsif threadID = 2 then
                     -- Target thread is 1
                     receiveSize <= 128; 
-                    transmitSize <= 64
+                    transmitSize <= 64;
                 elsif threadID = 3 then
                     -- No target thread
                     -- Only receives messages from thread 0
@@ -226,9 +226,7 @@ begin
                     end case;
                 end if;
             end if;
-
         end process;
-        
-    end TX;
+    end block TX;
     
 end architecture MPEG;
