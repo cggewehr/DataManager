@@ -35,15 +35,14 @@ use ieee.numeric_std.all;
 library std;
 use work.HeMPS_defaults.all;
 use work.HemPS_PKG.all;
-use work.Text_Package.all;
-
 
 entity DataManager_NOC is 
     generic(
         taskID      : integer;      -- Allocated task ID
         threadId    : integer;      -- Allocated thread ID
         PEPos       : integer;      -- PE position in network (PE ID)
-        targetPos   : integer       -- Target PE position in network
+        targetPos   : integer;      -- Target PE position in network
+        targetID    : integer       -- Target thread ID
     );
 	 
     port(
@@ -59,7 +58,7 @@ entity DataManager_NOC is
         clock_rx            : in  std_logic;        
         rx                  : in  std_logic;
         data_in             : in  regflit;
-        credit_o            : out std_logic;
+        credit_o            : out std_logic
     );
 end DataManager_NOC;
 
@@ -67,19 +66,40 @@ architecture MPEG of DataManager_NOC is
 
     -- Mimics the communication flow of the MPEG app: (Thread 4 sends 100 messages 128 flits wide each to thread 2, ...)
 
-    --  100x128      100x64       100x64       100x64       100x64    (Amount of messages * Amount of flits)
+    --  100x128      100x64       100x64       100x64       100x64    (Amount of messages x Amount of flits)
     --    (4)    ->    (2)    ->    (1)    ->    (0)    ->    (3)     (ThreadID)
 
-    signal semaphore    : integer range -100 to 99;  -- Controls message flow 
     signal sendCount    : integer range 0 to 128;    -- Counter for total messages received
     signal receiveCount : integer range 0 to 128;    -- Counter for total messages sent
     signal receiveSize  : integer range 0 to 128;    -- Number of flits to be received in a message
     signal transmitSize : integer range 0 to 128;    -- Number of flits to be sent in a message
+ 
+    signal semaphore    : integer range -128 to 127; -- Controls message flow
+    signal semaphoreAdd : std_logic;                 -- Incremets Semaphore
+    signal semaphoreSub : std_logic;                 -- Decrements Semaphore
 
 begin
+    
+    -- Control message flow (only allows a new transmission after a whole message is received)
+    FLOWCTRL: block begin
+        process(reset, clock) begin
+        
+            -- Whole message was received
+            if semaphoreAdd = '1' then
+                semaphore <= semaphore + 1;
+            end if;
+            
+            -- Whole message was transmited
+            if semaphoreSub = '1' then
+                semaphore <= semaphore - 1;
+            end if;
+        
+        end process;
+    end block FLOWCTRL;
 
-    RX: block
-        type state is (S0, S1, S2, S3, S4, S5);
+    -- Receives and processes messages from NOC
+    PE_RX: block
+        type state is (S0, S1, S2);
         signal currentState: state;
     begin
         process(reset, clock)
@@ -93,6 +113,7 @@ begin
                 sendCount <= 0;
                 receiveCount <= 0;
                 credit_o <= '1'; -- Always available
+                semaphoreAdd <= '0';
 
                 if threadID = 0 then
 
@@ -122,14 +143,19 @@ begin
                 end if;
 
             elsif rising_edge(clock) then
-                case state is
+                case currentState is
                     when S0 =>
-                        if data_in = netPos and rx = '1' then
+                        --if data_in = PEPos and rx = '1' then
+                        if to_integer(unsigned(data_in)) = PEPos and rx = '1' then
 
                             -- New message incoming
                             currentState <= S1;
                             flitCount := flitCount + 1;
+                            
                         end if;
+                        
+                        semaphoreAdd <= '0';
+                        
                     when S1 =>
 
                         -- Holds on this state until whole message is received
@@ -139,39 +165,43 @@ begin
 
                         if flitCount = receiveSize then
                             currentState <= S2;
-                        else
-                            currentState <= S3;
                             flitCount := 0;
+                        else
+                            currentState <= S1;
                         end if;
+                        
                     when S2 => 
 
                         -- End of message
                         receiveCount <= receiveCount + 1;
-                        semaphore <= semaphore + 1;
+                        semaphoreAdd <= '1';
                         currentState <= S0;
+                        
                 end case;
             end if;
         end process;
-    end block RX;
+    end block PE_RX;
 
-    TX : block is
-        type State is (S0, S1, S2, S3, S4, S5);
+    -- Elaborates new messages and transmits to NOC
+    PE_TX : block is
+        type State is (S0, S1, S2, S3, S4, S5, S6, S7, S8);
         signal currentState : State;
     begin
 
-        process(semaphore, reset, clock)
+        process(reset, clock)
             variable flitCount : integer range 0 to 128;
         begin
             if(reset = '1') then
-                flitCount <= 0;
-            elsif rising_edge(clock) then
+                flitCount := 0;
+                semaphoreSub <= '0';
+            elsif falling_edge(clock) then
                 if (semaphore > 1) then
                     case currentState is
                         when S0 => -- flit <= message target
                             if threadID /= 3 then
 
                                 if credit_i = '1' then
-                                    data_out <= std_logic_vector(targetPos, data_out'length);
+                                    data_out <= std_logic_vector(to_unsigned(targetPos, data_out'length));
                                     tx <= '1';
                                     currentState <= S1;
                                     flitCount := flitCount + 1;
@@ -182,10 +212,12 @@ begin
                             else -- if threadID = 3 transmits nothing, holds on S0
                                 currentState <= S0;
                             end if;
+                            
+                            semaphoreSub <= '0';
 
                         when S1 => -- flit <= message size
                             if credit_i = '1' then
-                                data_out <= std_logic_vector(messageSize, data_out'length);
+                                data_out <= std_logic_vector(to_unsigned(transmitSize, data_out'length));
                                 tx <= '1';
                                 currentState <= S2;
                                 flitCount := flitCount + 1;
@@ -194,7 +226,7 @@ begin
                             end if;
                         when S2 => -- flit <= payload (Source Processor)
                             if credit_i = '1' then
-                                data_out <= std_logic_vector(PEPos, data_out'length);
+                                data_out <= std_logic_vector(to_unsigned(PEPos, data_out'length));
                                 tx <= '1';
                                 currentState <= S3;
                                 flitCount := flitCount + 1;
@@ -203,7 +235,7 @@ begin
                             end if;
                         when S3 => -- flit <= payload (Message target thread) (Doesnt actually match HERMES behavior, cant know ID of thread (page ID, between 1 and 3), transmits ID of app target thread instead)
                             if credit_i = '1' then
-                                data_out <= std_logic_vector(targetThread, data_out'length);
+                                data_out <= std_logic_vector(to_unsigned(targetID, data_out'length));
                                 tx <= '1';
                                 currentState <= S4;
                                 flitCount := flitCount + 1;
@@ -212,7 +244,7 @@ begin
                             end if;
                         when S4 => -- flit <= payload (Message source thread) (Cant know thread id (Page ID between 1 and 3), transmits ID of app source thread)
                             if credit_i = '1' then
-                                data_out <= std_logic_vector(threadID, data_out'length);
+                                data_out <= std_logic_vector(to_unsigned(threadID, data_out'length));
                                 tx <= '1';
                                 currentState <= S5;
                                 flitCount := flitCount + 1;
@@ -221,7 +253,7 @@ begin
                             end if;
                         when S5 => -- flit <= payload (Payload size)
                             if credit_i = '1' then
-                                data_out <= std_logic_vector(messageSize - 2, data_out'length); 
+                                data_out <= std_logic_vector(to_unsigned(transmitSize - 2, data_out'length)); 
                                 tx <= '1';
                                 currentState <= S6;
                                 flitCount := flitCount + 1;
@@ -230,7 +262,7 @@ begin
                             end if;
                         when S6 => -- flit <= message (amount of messages sent by this PE)
                             if credit_i = '1' then
-                                data_out <= std_logic_vector(sendCount, data_out'length);
+                                data_out <= std_logic_vector(to_unsigned(sendCount, data_out'length));
                                 tx <= '1';
                                 currentState <= S7;
                                 flitCount := flitCount + 1;
@@ -252,13 +284,13 @@ begin
                                 currentState <= S7;
                             end if;
                         when S8 => 
-                            semaphore <= semaphore - 1;
+                            semaphoreSub <= '1';
                             sendCount <= sendCount + 1;
                             currentState <= S0;
                     end case;
                 end if;
             end if;
         end process;
-    end block TX;
+    end block PE_TX;
     
 end architecture MPEG;
