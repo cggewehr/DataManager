@@ -1,18 +1,18 @@
---------------------------------------------------------------------------------------
--- DESIGN UNIT  : Container for apps                                                --
--- DESCRIPTION  :                                                                   --
--- AUTHOR       : Carlos Gabriel de Araujo Gewehr                                   --
--- CREATED      : Aug 6th, 2019                                                     --
--- VERSION      : v0.1                                                              --
--- HISTORY      : Version 0.1 - Aug 6th, 2019                                       --
---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------
+-- DESIGN UNIT  : Container for a single MSG Injector and In/Out Buffers parametrizable by a JSON file --
+-- DESCRIPTION  :                                                                                      --
+-- AUTHOR       : Carlos Gabriel de Araujo Gewehr                                                      --
+-- CREATED      : Aug 6th, 2019                                                                        --
+-- VERSION      : v0.1                                                                                 --
+-- HISTORY      : Version 0.1 - Aug 6th, 2019                                                          --
+---------------------------------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------
 -- TODO         : 
-    -- Create app handler and scheduler (parametrized by JSON config)
-    -- Instantiate app specific injectors and buffers according to JSON config
-    -- Finish buffer instantiation
---------------------------------------------------------------------------------------
+    -- Instantiate Buffer
+    -- Instantiate Injector
+    -- Determine CROSSBAR and BUS interfaces
+---------------------------------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -22,8 +22,9 @@ use work.PE_PKG.all;
 
 entity PE is 
     generic(
-        -- Path to JSON file containing PE parameters
-        ConfigFile:         : string
+        -- Path to JSON file containing PE and APP parameters
+        PEConfigFile          : string;
+        APPConfigFile         : string       
     );
     port(
 	    clock               : in  std_logic;
@@ -52,29 +53,29 @@ entity PE is
     );
 end PE;
 
-architecture behavioral of PE is
+architecture Injector of PE is
 
-    -- JSON config file
-    constant JSONConfig: T_JSON := jsonLoadFile(ConfigFile);
+    -- JSON config files
+    constant PEJSONConfig: T_JSON := jsonLoadFile(PEConfigFile);
+    constant APPJSONConfig: T_JSON := jsonLoadFile(APPConfigFile);
+
+    -- COMM STRUCTURE INTERFACE SIGNALS ("NOC", "XBR", "BUS")
+    constant CommStructure: string(1 to 3) := jsonGetString(PEJSONConfig, "CommStructure");
 
     -- BUFFER SIGNALS
-    constant InBufferSize: integer := jsonGetInteger(JSONConfig, "InBufferSize");
-    constant OutBufferSize: integer := jsonGetInteger(JSONConfig, "OutBufferSize");
-    signal InBuffer : InBuffer_t(0 to InBufferSize - 1);
-    signal OutBuffer : OutBuffer_t(0 to OutBufferSize - 1);
-
-    -- SCHEDULER SIGNALS
-    constant SchedPolicy: string(1 to 4) := jsonGetString(JSONConfig, "SchedPolicy");
-    constant RoundRobinClkPeriod: integer := jsonGetInteger(JSONConfig, "RoundRobinClkPeriod");
-
-    -- APP INTERFACE SIGNALS
-    constant AppAmount: integer := jsonGetInteger(JSONConfig, "AppAmount");
-
-
-
+    constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
+    constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
+    signal InBuffer: InBuffer_t(0 to InBufferSize - 1);
+    signal OutBuffer: OutBuffer_t(0 to OutBufferSize - 1);
 
 begin
     
+    
 
+end architecture Injector;
 
-end architecture;
+--architecture Plasma of PE is
+
+--begin
+    
+--end architecture Plasma;
