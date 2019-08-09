@@ -64,13 +64,18 @@ architecture Injector of PE is
 
     -- BUFFER SIGNALS
     constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
-    constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
     signal InBuffer: InBuffer_t(0 to InBufferSize - 1);
+    signal InDataAV: std_logic;
+    signal InBufferReady: std_logic;
+
+    constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
     signal OutBuffer: OutBuffer_t(0 to OutBufferSize - 1);
+    signal OutDataAV: std_logic;
+    signal OutBufferReady: std_logic;
 
 begin
-    
-    
+
+    -- instanciate buffers    
 
 end architecture Injector;
 
