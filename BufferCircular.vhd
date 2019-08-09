@@ -15,11 +15,13 @@ entity CircularBuffer is
 
         -- Input Interface
         dataIn : in std_logic_vector(dataWidth - 1 downto 0);
-        dataInAV : in std_logic;
+        dataInAV: in std_logic;
+        writeRequest : in std_logic;
 
         -- Output interface
-        data_out : out std_logic_vector(dataWidth - 1 downto 0);
+        dataOut : out std_logic_vector(dataWidth - 1 downto 0);
         dataOutAV : out std_logic;
+        readRequest: in std_logic;
 
         -- Flags
         bufferEmptyFlag : out std_logic;
@@ -58,17 +60,16 @@ begin
 
             elsif rising_edge(clk) then
 
-                if InDataAV = 1 then
-
-                    if bufferFullFlag = '0' then
+                if (dataInAV = '1') and (dataCount < BufferSize) then
                     
-                        InBuffer(writePointer) <= dataIn;
-                        writePointer <= writePointer + 1;
-                        dataCount <= dataCount + 1;
+                    InBuffer(writePointer) <= dataIn;
+                    dataCount <= dataCount + 1;
 
-                    end if;
+                    writePointer <= (writePointer + 1) % (BufferSize - 1);
 
-                if 
+                end if;
+
+                if () then
 
                 end if;
 

@@ -19,6 +19,7 @@ use ieee.std_logic_1164.all;
 use work.HeMPS_defaults.all;
 use work.HemPS_PKG.all;
 use work.PE_PKG.all;
+use work.BUfferCircular.all;
 
 entity PE is 
     generic(
@@ -75,7 +76,19 @@ architecture Injector of PE is
 
 begin
 
-    -- instanciate buffers    
+    -- instanciate buffers
+    InBuffer: entity work.BufferCircular
+        generic map(
+            bufferSize => InBufferSize,
+            dataWidth  => regflit
+        )
+        port map (
+            clock => clock_rx,
+            reset => reset,
+
+            
+            
+        );    
 
 end architecture Injector;
 
