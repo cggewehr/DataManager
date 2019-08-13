@@ -50,10 +50,6 @@ begin
 
             if (reset = '1') then
 
-                for i in 0 to BufferSize - 1 loop
-                    Buffer(i) <= (others => '0');
-                end loop;
-
                 readPointer <= 0;
                 writePointer <= 0;
                 dataCount <= 0;

@@ -52,6 +52,7 @@ architecture behavioral of DataManager_NOC is
 begin
     clock_tx <= clock;
     SEND: block
+    
     -- Injector Signals
     type state is (S0, S1);
     signal currentState : state;
@@ -59,15 +60,22 @@ begin
     file flitFile : text open read_mode is fileNameIn;
 
     begin
+
         process(clock, reset)
+
             variable flitLine   : line;
             variable str        : string(1 to 8);
+
         begin 
+
             if reset = '1' then
                 currentState <= S1;
                 words <= (OTHERS=>'0');
+
             elsif rising_edge(clock) then
+
                 case currentState is
+
                     when S0 =>
                         if not(endfile(flitFile)) or (credit_i = '0') then
                             if(credit_i = '1') then
@@ -83,6 +91,7 @@ begin
                         end if;
 
                     when S1 =>
+
                         if not(endfile(flitFile)) then
                             readline(flitFile, flitLine);
                             read(flitLine, str);
@@ -92,11 +101,16 @@ begin
                             words <= (OTHERS=>'0');
                             currentState <= S1;
                         end if;
+
                 end case;
+
             end if;
+
         end process;
+
         data_out <= words;
         tx <= '1' when currentState = S0 else '0';
+
     end block SEND;
     
     RECIEVE: block

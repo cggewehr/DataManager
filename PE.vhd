@@ -9,23 +9,20 @@
 
 ---------------------------------------------------------------------------------------------------------
 -- TODO         : 
-    -- Instantiate Buffer
     -- Instantiate Injector
     -- Determine CROSSBAR and BUS interfaces
 ---------------------------------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.HeMPS_defaults.all;
-use work.HemPS_PKG.all;
+use work.BufferCircular.all;
 use work.PE_PKG.all;
-use work.BUfferCircular.all;
 
 entity PE is 
     generic(
         -- Path to JSON file containing PE and APP parameters
         PEConfigFile          : string;
-        APPConfigFile         : string       
+        InjectorConfigFile    : string
     );
     port(
 	    clock               : in  std_logic;
@@ -39,7 +36,7 @@ entity PE is
         clock_rx            : in  std_logic;        
         rx                  : in  std_logic;
         data_in             : in  regflit;
-        credit_o            : out std_logic; 	-- Debug MC
+        credit_o            : out std_logic;    -- Debug MC
         write_enable_debug  : out std_logic; 
         data_out_debug      : out std_logic_vector(31 downto 0);
         busy_debug          : in  std_logic;
@@ -56,39 +53,131 @@ end PE;
 
 architecture Injector of PE is
 
-    -- JSON config files
-    constant PEJSONConfig: T_JSON := jsonLoadFile(PEConfigFile);
-    constant APPJSONConfig: T_JSON := jsonLoadFile(APPConfigFile);
+    -- INPUT BUFFER (DATA FROM STRUCTURE)
+    signal InClock: std_logic;
+    signal InDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal InDataInAV: std_logic;
+    signal InWriteRequest: std_logic;
+    signal InDataOut: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal InDataOutAV: std_logic;
+    signal InReadRequest: std_logic;
+    signal InBufferEmpty: std_logic;
+    signal InBufferFull: std_logic;
+    signal InBufferAvailable: std_logic;
 
-    -- COMM STRUCTURE INTERFACE SIGNALS ("NOC", "XBR", "BUS")
-    constant CommStructure: string(1 to 3) := jsonGetString(PEJSONConfig, "CommStructure");
-
-    -- BUFFER SIGNALS
-    constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
-    signal InBuffer: InBuffer_t(0 to InBufferSize - 1);
-    signal InDataAV: std_logic;
-    signal InBufferReady: std_logic;
-
-    constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
-    signal OutBuffer: OutBuffer_t(0 to OutBufferSize - 1);
-    signal OutDataAV: std_logic;
-    signal OutBufferReady: std_logic;
+    -- OUTPUT BUFFER (DATA TO STRUCTURE)
+    signal OutClock: std_logic;
+    signal OutDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal OutDataInAV: std_logic;
+    signal OutWriteRequest: std_logic;
+    signal OutDataOut: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal OutDataOutAV: std_logic;
+    signal OutReadRequest: std_logic;
+    signal OutBufferEmpty: std_logic;
+    signal OutBufferFull: std_logic;
+    signal OutBufferAvailable: std_logic;
 
 begin
 
-    -- instanciate buffers
     InBuffer: entity work.BufferCircular
         generic map(
             bufferSize => InBufferSize,
-            dataWidth  => regflit
+            dataWidth  => DataWidth -- Constante definida em HeMPS_defaults.vhd
         )
         port map (
-            clock => clock_rx,
+            -- Basic
+            clock => InClock,
             reset => reset,
 
+            -- Input Interface
+            dataIn => InDataIn,
+            dataInAV => InDataInAV,
+            writeRequest => InWriteRequest,
+
+            -- Output Interface
+            dataOut => InDataOut,
+            dataOutAV => InDataOutAV,
+            readRequest => InReadRequest,
+
+            -- Flags
+            bufferEmptyFlag => InBufferEmptyFlag,
+            bufferFullFlag => InBufferFullFlag,
+            bufferAvailableFlag => InBufferAvailableFlag
             
+        );
+
+
+    OutBuffer: entity work.BufferCircular
+        generic map(
+            bufferSize => OutBufferSize,
+            dataWidth  => DataWidth -- Constante definida em HeMPS_defaults.vhd
+        )
+        port map (
+            -- Basic
+            clock => OutClock,
+            reset => reset,
+
+            -- Input Interface
+            dataIn => OutDataIn,
+            dataInAV => OutDataInAV,
+            writeRequest => OutWriteRequest,
+
+            -- Output Interface
+            dataOut => OutDataOut,
+            dataOutAV => OutDataOutAV,
+            readRequest => OutReadRequest,
+
+            -- Flags
+            bufferEmptyFlag => OutBufferEmptyFlag,
+            bufferFullFlag => OutBufferFullFlag,
+            bufferAvailableFlag => OutBufferAvailableFlag
             
-        );    
+        );
+
+
+    BufferNOCInterface : block (CommStructure = "NOC") is
+        
+    begin
+    
+        -- NoC Interface
+        clock_tx <= OutClock;
+        data_out <= OutDataOut;
+        OutReadRequest <= credit_i;
+        tx <= OutDataOutAV;
+
+        InClock <= clock_rx;
+        InDataInAV <= rx;
+        InWriteRequest <= rx;
+        InDataIn <= data_in;
+        credit_o <= InBufferAvailable;             
+
+    end block BufferNOCInterface;
+
+
+    BufferCrossbarInterface : block (CommStructure = "XBR") is
+        
+    begin
+    
+    end block BufferCrossbarInterface;
+
+
+    BufferBusInterface : block (CommStructure = "BUS") is
+        
+    begin
+    
+    end block BufferBusInterface;
+
+
+    Injector: entity work.Injector
+        generic map(
+            PEConfigFile => PEConfigFile,
+            InjectorConfigFile => InjectorConfigFile
+        )
+        port map(
+            
+
+
+        )
 
 end architecture Injector;
 
