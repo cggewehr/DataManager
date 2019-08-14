@@ -31,11 +31,11 @@ entity PE is
 	   -- NoC Interface      
         clock_tx            : out std_logic;
         tx                  : out std_logic;
-        data_out            : out regflit;
+        data_out            : out DataWidth;
         credit_i            : in  std_logic;
         clock_rx            : in  std_logic;        
         rx                  : in  std_logic;
-        data_in             : in  regflit;
+        data_in             : in  DataWidth;
         credit_o            : out std_logic;    -- Debug MC
         write_enable_debug  : out std_logic; 
         data_out_debug      : out std_logic_vector(31 downto 0);
@@ -53,7 +53,18 @@ end PE;
 
 architecture Injector of PE is
 
+    -- JSON config files
+    constant PEJSONConfig: T_JSON := jsonLoadFile(PEConfigFile);
+    constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
+
+    -- COMM STRUCTURE INTERFACE CONSTANTS ("NOC", "XBR", "BUS")
+    constant CommStructure: string(1 to 3) := jsonGetString(PEJSONConfig, "CommStructure");
+
+    -- INJECTOR CONSTANTS ("FXD", "SDP", "PDP") (Serial, Fixed Dependant, Parallel Dependant)
+    constant InjectorType: string(1 to 3) := jsonGetString(PEJSONConfig, "InjectorType");
+
     -- INPUT BUFFER (DATA FROM STRUCTURE)
+    constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
     signal InClock: std_logic;
     signal InDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
     signal InDataInAV: std_logic;
@@ -66,6 +77,7 @@ architecture Injector of PE is
     signal InBufferAvailable: std_logic;
 
     -- OUTPUT BUFFER (DATA TO STRUCTURE)
+    constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
     signal OutClock: std_logic;
     signal OutDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
     signal OutDataInAV: std_logic;
@@ -85,6 +97,7 @@ begin
             dataWidth  => DataWidth -- Constante definida em HeMPS_defaults.vhd
         )
         port map (
+
             -- Basic
             clock => InClock,
             reset => reset,
@@ -113,6 +126,7 @@ begin
             dataWidth  => DataWidth -- Constante definida em HeMPS_defaults.vhd
         )
         port map (
+
             -- Basic
             clock => OutClock,
             reset => reset,
@@ -175,9 +189,21 @@ begin
         )
         port map(
             
+            -- Basic
+            clock => clock_rx,
+            reset => reset,
 
+            -- Input Interface
+            dataIn => InDataOut,
+            dataInAV => InDataOutAV,
+            inputBufferReadRequest => InReadRequest,
 
-        )
+            -- Output Interface
+            dataOut => OutDataIn,
+            dataOutAV => OutDataInAV,
+            outputBufferWriteRequest => OutWriteRequest
+
+        );
 
 end architecture Injector;
 
