@@ -17,8 +17,8 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use work.HeMPS_defaults.all;
-use work.HemPS_PKG.all;
+use work.PE_PKG.all;
+use work.JSON.all;
 
 entity Injector is
 
@@ -42,13 +42,22 @@ entity Injector is
 		-- Output Interface
 		dataOut : out std_logic_vector(dataWidth - 1 downto 0);
 		dataOutAV : out std_logic;
-		outputBufferWriteRequest : out std_logic;
+		outputBufferWriteRequest : out std_logic
 
 	);
 
 end entity Injector;
 
 architecture RTL of Injector is
+
+	-- JSON configuration file
+    constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
+
+
+    -- Injector type
+    constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
+
+	constant averageProcessingTimeInClocks : integer := jsongetInteger() ; 
 
 begin
 	

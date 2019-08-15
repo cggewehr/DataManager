@@ -17,6 +17,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use work.BufferCircular.all;
 use work.PE_PKG.all;
+use work.JSON.all;
 
 entity PE is 
     generic(
@@ -25,6 +26,8 @@ entity PE is
         InjectorConfigFile    : string
     );
     port(
+
+        -- Basic
 	    clock               : in  std_logic;
         reset               : in  std_logic;
 
