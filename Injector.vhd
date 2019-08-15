@@ -53,7 +53,6 @@ architecture RTL of Injector is
 	-- JSON configuration file
     constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
 
-
     -- Injector type
     constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
 
@@ -65,8 +64,13 @@ architecture RTL of Injector is
     -- (Series dependant Injector)
     constant AmountOfSourcePEs : integer :=  jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
 	constant AverageProcessingTimeInClockPulses : integer := jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses");
-	constant 
+	
+
+	subtype sourcePEs_t is array(0 to AmountOfSourcePEs - 1) of integer;
+	signal 
 
 begin
+
+	
 	
 end architecture RTL;
