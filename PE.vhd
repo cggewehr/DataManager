@@ -69,6 +69,7 @@ architecture Injector of PE is
     signal InDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
     signal InDataInAV: std_logic;
     signal InWriteRequest: std_logic;
+    signal InWriteACK: std_logic;
     signal InDataOut: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
     signal InDataOutAV: std_logic;
     signal InReadRequest: std_logic;
@@ -82,6 +83,7 @@ architecture Injector of PE is
     signal OutDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
     signal OutDataInAV: std_logic;
     signal OutWriteRequest: std_logic;
+    signal OutWriteACK: std_logic;
     signal OutDataOut: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
     signal OutDataOutAV: std_logic;
     signal OutReadRequest: std_logic;
@@ -106,6 +108,7 @@ begin
             dataIn => InDataIn,
             dataInAV => InDataInAV,
             writeRequest => InWriteRequest,
+            writeACK => InWriteACK,
 
             -- Output Interface
             dataOut => InDataOut,
@@ -136,6 +139,7 @@ begin
             dataIn => OutDataIn,
             dataInAV => OutDataInAV,
             writeRequest => OutWriteRequest,
+            writeACK => OutWriteACK,
 
             -- Output Interface
             dataOut => OutDataOut,
@@ -198,6 +202,7 @@ begin
             dataIn => InDataOut,
             dataInAV => InDataOutAV,
             inputBufferReadRequest => InReadRequest,
+            inputBufferWriteACK => InWriteACK,
 
             -- Output Interface
             dataOut => OutDataIn,

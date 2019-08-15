@@ -30,18 +30,19 @@ entity Injector is
 	port (
 
 		-- Basic
-		clock : std_logic;
-		reset : std_logic;
+		clock : in std_logic;
+		reset : in std_logic;
 
 		-- Input Interface
-		dataIn : std_logic_vector(dataWidth - 1 downto 0);
-		dataInAV : std_logic;
-		inputBufferReadRequest : std_logic;
+		dataIn : in std_logic_vector(dataWidth - 1 downto 0);
+		dataInAV : in std_logic;
+		inputBufferReadRequest : out std_logic;
+		inputBufferWriteACK: in std_logic;
 
 		-- Output Interface
-		dataOut : std_logic_vector(dataWidth - 1 downto 0);
-		dataOutAV : std_logic;
-		outputBufferWriteRequest : std_logic;
+		dataOut : out std_logic_vector(dataWidth - 1 downto 0);
+		dataOutAV : out std_logic;
+		outputBufferWriteRequest : out std_logic;
 
 	);
 
