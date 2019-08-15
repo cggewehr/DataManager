@@ -119,6 +119,7 @@ begin
             
         );
 
+    OutClock <= InClock;
 
     OutBuffer: entity work.BufferCircular
         generic map(
