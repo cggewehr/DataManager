@@ -57,7 +57,15 @@ architecture RTL of Injector is
     -- Injector type
     constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
 
-	constant averageProcessingTimeInClocks : integer := jsongetInteger() ; 
+    -- (Fixed injection rate Injector)
+    constant InjectionRate: integer range 0 to 100 := jsonGetInteger(InjectorJSONConfig, "InjectionRate");
+    constant AmountOfMessagesInBurst: integer  := jsonGetInteger(InjectorJSONConfig, "AmountOfMessagesInBurst");
+
+
+    -- (Series dependant Injector)
+    constant AmountOfSourcePEs : integer :=  jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
+	constant AverageProcessingTimeInClockPulses : integer := jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses");
+	constant 
 
 begin
 	
