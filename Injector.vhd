@@ -75,7 +75,7 @@ architecture RTL of Injector is
     begin
 
         FillSourcesLoop: for i in 0 to (AmountOfSourcePEs - 1) loop
-            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ("SourcePEs/" & i'image) ); 
+            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ( "SourcePEs/" & integer'image(i) ) ); 
         end loop;
 
         return tempArray;
@@ -93,7 +93,7 @@ architecture RTL of Injector is
     begin
 
         FillTargetsLoop: for i in 0 to (AmountOfTargetPEs - 1) loop
-            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ("TargetPEs/" & i'image) ); 
+            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ( "TargetPEs/" & integer'image(i) ) ); 
         end loop;
 
         return tempArray;
@@ -112,7 +112,7 @@ architecture RTL of Injector is
     begin
 
         FillPayloadSizeLoop: for i in 0 to (AmountOfTargetPEs - 1) loop 
-            tempArray(i) := jsonGetInteger(InjectorJSONConfig, "PayloadSize/" & i'image);
+            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ( "PayloadSize/" & integer'image(i) ) );
         end loop FillPayloadSizeLoop;
 
         return tempArray;
@@ -125,22 +125,22 @@ architecture RTL of Injector is
 
     function FillHeaderFlitsArray return HeaderFlits_t is
         variable tempArray : HeaderFlits_t;
-        variable headerFlit : string(1 to 4);
+        variable headerFlitString : string(1 to 4);
     begin
 
-        BuildHeaderLoop: for i in 0 to (AmountOfTargetPEs - 1) loop
+        BuildHeaderLoop: for target in 0 to (AmountOfTargetPEs - 1) loop
 
-            BuildFlitLoop: for j in 0 to (HeaderSize - 1) loop
+            BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
-                headerFlit := jsonGetString(InjectorJSONConfig, "Header/" & i'image & "/" & j'image);
+                headerFlitString := jsonGetString(InjectorJSONConfig, ( "Header/" & integer'image(target) & "/" & integer'image(flit) ) );
 
-                if headerFlit = "ADDR" then 
+                if headerFlitString = "ADDR" then 
 
-                    tempArray(i)(j) := TargetPEsArray(i);
+                    tempArray(target)(flit) := TargetPEsArray(target);
 
-                elsif headerFlit = "SIZE" then
+                elsif headerFlitString = "SIZE" then
 
-                    tempArray(i)(j) := PayloadSize(i);
+                    tempArray(target)(flit) := PayloadSize(target);
 
                 end if;
                                 
