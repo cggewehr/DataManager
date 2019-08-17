@@ -41,7 +41,7 @@ architecture RTL of CircularBuffer is
     signal writePointer: integer range 0 to BufferSize - 1;
     signal dataCount: integer range 0 to BufferSize - 1;
 
-    -- Increments and wraps around
+    -- Increments and wrap around
     procedure incr(signal value : inout integer) is
 
     begin
@@ -54,7 +54,7 @@ architecture RTL of CircularBuffer is
 
     end procedure;
 
-    -- Decrements and wraps around
+    -- Decrements and wrap around
     procedure decr(signal value : inout integer) is
 
     begin

@@ -205,12 +205,12 @@ begin
             dataIn => InDataOut,
             dataInAV => InDataOutAV,
             inputBufferReadRequest => InReadRequest,
-            inputBufferWriteACK => InWriteACK,
 
             -- Output Interface
             dataOut => OutDataIn,
             dataOutAV => OutDataInAV,
-            outputBufferWriteRequest => OutWriteRequest
+            outputBufferWriteRequest => OutWriteRequest,
+            outputBufferWriteACK => outWriteACK
 
         );
 
