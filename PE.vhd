@@ -69,11 +69,11 @@ architecture Injector of PE is
     -- INPUT BUFFER (DATA FROM STRUCTURE)
     constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
     signal InClock: std_logic;
-    signal InDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal InDataIn: DataWidth_t; -- Tipo definido em PE_PKG.vhd
     signal InDataInAV: std_logic;
     signal InWriteRequest: std_logic;
     signal InWriteACK: std_logic;
-    signal InDataOut: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal InDataOut: DataWidth_t; -- Tipo definido em PE_PKG.vhd
     signal InDataOutAV: std_logic;
     signal InReadRequest: std_logic;
     signal InBufferEmpty: std_logic;
@@ -83,11 +83,11 @@ architecture Injector of PE is
     -- OUTPUT BUFFER (DATA TO STRUCTURE)
     constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
     signal OutClock: std_logic;
-    signal OutDataIn: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal OutDataIn: DataWidth_t; -- Tipo definido em PE_PKG.vhd
     signal OutDataInAV: std_logic;
     signal OutWriteRequest: std_logic;
     signal OutWriteACK: std_logic;
-    signal OutDataOut: DataWidth_t; -- Tipo definido em HeMPS_defaults.vhd
+    signal OutDataOut: DataWidth_t; -- Tipo definido em PE_PKG.vhd
     signal OutDataOutAV: std_logic;
     signal OutReadRequest: std_logic;
     signal OutBufferEmpty: std_logic;
@@ -99,7 +99,7 @@ begin
     InBuffer: entity work.BufferCircular
         generic map(
             bufferSize => InBufferSize,
-            dataWidth  => DataWidth -- Constante definida em HeMPS_defaults.vhd
+            dataWidth  => DataWidth -- Constante definida em PE_PKG.vhd
         )
         port map (
 
@@ -130,7 +130,7 @@ begin
     OutBuffer: entity work.BufferCircular
         generic map(
             bufferSize => OutBufferSize,
-            dataWidth  => DataWidth -- Constante definida em HeMPS_defaults.vhd
+            dataWidth  => DataWidth -- Constante definida em PE_PKG.vhd
         )
         port map (
 
