@@ -91,7 +91,7 @@ package body PE_PKG is
     -- Builds header for each target PE
     subtype HeaderFlits_t is array(natural range <>, natural range <>) of DataWidth_t;
 
-    function FillHeaderFlitsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural ; HeaderSize : natural) return HeaderFlits_t is
+    function FillHeaderFlitsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural ; HeaderSize : natural ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSize : TargetPayloadSize_t) return HeaderFlits_t is
         variable tempArray : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1);
     begin
 
@@ -107,7 +107,7 @@ package body PE_PKG is
 
                 elsif headerFlitString = "SIZE" then
 
-                    tempArray(target)(flit) := PayloadSize(target);
+                    tempArray(target)(flit) := TargetPayloadSize(target);
 
                 end if;
                                 

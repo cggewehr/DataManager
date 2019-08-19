@@ -79,7 +79,7 @@ architecture RTL of Injector is
     constant SourcePayloadSize : SourcetPayloadSize_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
-    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := FillHeaderFlitsArray(InjectorJSONConfig, AmountOfTargetPEs, HeaderSize);
+    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := FillHeaderFlitsArray(InjectorJSONConfig, AmountOfTargetPEs, HeaderSize, TargetPEsArray, TargetPayloadSize);
 
 begin
 
