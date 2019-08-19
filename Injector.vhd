@@ -42,7 +42,7 @@ entity Injector is
 		dataOut : out std_logic_vector(dataWidth - 1 downto 0);
 		dataOutAV : out std_logic;
 		outputBufferWriteRequest : out std_logic;
-        outputBufferWriteACK: in std_logic;
+        outputBufferWriteACK: in std_logic
 
 	);
 
@@ -68,91 +68,18 @@ architecture RTL of Injector is
 
     -- Source PEs constants
     constant AmountOfSourcePEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
-    subtype SourcePEsArray_t is array(0 to AmountOfSourcePEs - 1) of integer;
-
-    function FillSourcePEsArray return sourcePEsArray_t is
-        variable tempArray : SourcePEsArray_t;
-    begin
-
-        FillSourcesLoop: for i in 0 to (AmountOfSourcePEs - 1) loop
-            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ( "SourcePEs/" & integer'image(i) ) ); 
-        end loop;
-
-        return tempArray;
-
-    end function FillSourcePEsArray;
-
-    constant SourcePEsArray : SourcePEsArray_t := FillSourcePEsArray;
+    constant SourcePEsArray : SourcePEsArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePEsArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority) )
     constant AmountOfTargetPEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
-    subtype TargetPEsArray_t is array(0 to AmountOfTargetPEs - 1) of integer;
-
-    function FillTargetPEsArray return TargetPEsArray_t is
-        variable tempArray : TargetPEsArray_t;
-    begin
-
-        FillTargetsLoop: for i in 0 to (AmountOfTargetPEs - 1) loop
-            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ( "TargetPEs/" & integer'image(i) ) ); 
-        end loop;
-
-        return tempArray;
-
-    end function FillTargetPEsArray;
-
-    constant TargetPEsArray : TargetPEsArray_t := FillTargetPEsArray;
+    constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
 
     -- Message parameters
+    constant TargetPayloadSize : TargetPayloadSize_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant SourcePayloadSize : SourcetPayloadSize_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
+
     constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
-
-    subtype PayloadSize_t is array(0 to AmountOfTargetPEs - 1) of std_logic_vector(dataWidth - 1 downto 0);
-
-    function FillPayloadSizeArray return PayloadSize_t is
-        variable tempArray : PayloadSize_t;
-    begin
-
-        FillPayloadSizeLoop: for i in 0 to (AmountOfTargetPEs - 1) loop 
-            tempArray(i) := jsonGetInteger(InjectorJSONConfig, ( "PayloadSize/" & integer'image(i) ) );
-        end loop FillPayloadSizeLoop;
-
-        return tempArray;
-
-    end function;
-
-    constant PayloadSize : PayloadSize_t := FillPayloadSizeArray;
-
-    subtype HeaderFlits_t is array(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) of std_logic_vector(dataWidth - 1 downto 0);
-
-    function FillHeaderFlitsArray return HeaderFlits_t is
-        variable tempArray : HeaderFlits_t;
-        variable headerFlitString : string(1 to 4);
-    begin
-
-        BuildHeaderLoop: for target in 0 to (AmountOfTargetPEs - 1) loop
-
-            BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
-
-                headerFlitString := jsonGetString(InjectorJSONConfig, ( "Header/" & integer'image(target) & "/" & integer'image(flit) ) );
-
-                if headerFlitString = "ADDR" then 
-
-                    tempArray(target)(flit) := TargetPEsArray(target);
-
-                elsif headerFlitString = "SIZE" then
-
-                    tempArray(target)(flit) := PayloadSize(target);
-
-                end if;
-                                
-            end loop BuildFlitLoop;
-
-        end loop BuildHeaderLoop;
-
-        return tempArray;
-
-    end function FillHeaderFlitsArray;
-
-    constant HeaderFlits: HeaderFlits_t := FillHeaderFlitsArray;
+    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := FillHeaderFlitsArray(InjectorJSONConfig, AmountOfTargetPEs, HeaderSize);
 
 begin
 
