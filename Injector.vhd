@@ -70,7 +70,7 @@ architecture RTL of Injector is
     constant AmountOfSourcePEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
     constant SourcePEsArray : SourcePEsArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePEsArray(InjectorJSONConfig, AmountOfSourcePEs);
 
-    -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority) )
+    -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
     constant AmountOfTargetPEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
 
@@ -81,8 +81,64 @@ architecture RTL of Injector is
     constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
     constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := FillHeaderFlitsArray(InjectorJSONConfig, AmountOfTargetPEs, HeaderSize, TargetPEsArray, TargetPayloadSize);
 
+    constant TargetMessageSize : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSize, HeaderSize, AmountOfTargetPEs); 
+
 begin
 
-	
+    inputBufferReadRequest <= '1';
+
+
+    FixedRateInjetor: block (InjectorType = "FXD") is
+
+        type state_t is (Sreset, Ssending, Swaiting);
+        signal nextState, currentState : state_t;
+
+
+    begin
+
+        process(clock, reset) begin
+
+            if rising_edge(clk) then
+
+                if reset = '1' then
+
+                    currentState <= Sreset;
+
+                else
+
+                    currentState <= nextState;
+
+                end if;
+
+            end if;
+
+        end process;
+
+
+        process(clock)
+            variable injectionCounter : integer := 0;
+        begin
+
+            if currentState = Sreset then
+
+                injectionCounter := 0;
+
+                nextState <= Ssending;
+
+            if currentState = Ssending then
+
+                
+
+
+        end process;
+
+
+    end block FixedRateInjetor;
+
+	DependantInjector : block (InjectorType = "DPD") is
+        
+    begin
+    
+    end block DependantInjector;
 	
 end architecture RTL;

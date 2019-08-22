@@ -3,21 +3,32 @@
 --------------------------------------------------------------------------
 
 library IEEE;
-use IEEE.Std_Logic_1164.all;
+use IEEE.std_Logic_1164.all;
+use IEEE.numeric_std.all;
 use work.HeMPS_defaults.all;
 use work.JSON.all;
 
+        --inj_period := ((INJ_PKGSIZE * 100) / INJ_RATE) - INJ_PKGSIZE;
+        --inj_count := INJ_PKGSIZE;
+
 package PE_PKG is
 
-    -- COMMON CONSTANTS
     constant DataWidth: integer := TAM_FLIT;
     subtype DataWidth_t is std_logic_vector(DataWidth - 1 downto 0);
 
-    function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : natural) return SourcePEsArray_t;
-    function FillSourcePayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : natural) return SourcePayloadSize_t;
-	function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural) return TargetPEsArray_t;
-    function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural) return PayloadSize_t;
-    function FillHeaderFlitsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural ; HeaderSize : natural) return HeaderFlits_t;
+    subtype SourcePEsArray_t is array(integer range <>) of integer;
+    subtype SourcePayloadSize_t is array(integer range <>) of integer;
+    subtype TargetPEsArray_t is array(integer range <>) of integer;
+    subtype TargetPayloadSize_t is array(integer range <>) of integer;
+    subtype TargetMessageSize_t is array(integer range <>) of integer;
+    subtype HeaderFlits_t is array(integer range <>, integer range <>) of DataWidth_t;
+
+    function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePEsArray_t;
+    function FillSourcePayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePayloadSize_t;
+	function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t;
+    function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return PayloadSize_t;
+    function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSize_t ; HeaderSize : integer ; AmountOfTargetPEs : integer) return TargetMessageSize_t;
+    function BuildHeaders(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSize : TargetPayloadSize_t) return HeaderFlits_t;
 
 end package PE_PKG;
 
@@ -25,9 +36,7 @@ package body PE_PKG is
 
 
     -- Fills array of source PEs 
-    subtype SourcePEsArray_t is array(natural range <>) of natural;
-
-    function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : natural) return SourcePEsArray_t is
+    function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePEsArray_t is
         variable tempArray : SourcePEsArray_t(0 to AmountOfSourcePEs - 1);
     begin
 
@@ -41,9 +50,7 @@ package body PE_PKG is
 
 
     -- Fills array of source payload size for each source PE
-    subtype SourcePayloadSize_t is array(natural range <>) of natural;
-
-    function FillSourcePayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : natural) return SourcePayloadSize_t is
+    function FillSourcePayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePayloadSize_t is
         variable tempArray : SourcePayloadSize_t(0 to AmountOfSourcePEs - 1);
     begin
 
@@ -57,9 +64,7 @@ package body PE_PKG is
 
 
 	-- Fills array of target PEs
-    subtype TargetPEsArray_t is array(natural range <>) of natural;
-
-    function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural) return TargetPEsArray_t is
+    function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t is
         variable tempArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1);
     begin
 
@@ -73,9 +78,7 @@ package body PE_PKG is
 
 
     -- Fills array of target payload size for each target PE
-    subtype TargetPayloadSize_t is array(natural range <>) of natural;
-
-    function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural) return TargetPayloadSize_t is
+    function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPayloadSize_t is
         variable tempArray : TargetPayloadSize_t(0 to AmountOfTargetPEs - 1);
     begin
 
@@ -87,11 +90,20 @@ package body PE_PKG is
 
     end function;
 
+    function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSize_t ; HeaderSize : integer ; AmountOfTargetPEs : integer) return TargetMessageSize_t is
+        variable tempArray : TargetMessageSize_t(0 to AmountOfTargetPEs - 1);
+    begin
+
+        FillTargetMessageSizeLoop : for i in 0 to AmountOfTargetPEs loop
+            
+            tempArray(i) <= TargetPayloadSize(i) + HeaderSize;
+
+        end loop;
+        
+    end function FillTargetMessageSizeArray;
 
     -- Builds header for each target PE
-    subtype HeaderFlits_t is array(natural range <>, natural range <>) of DataWidth_t;
-
-    function FillHeaderFlitsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : natural ; HeaderSize : natural ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSize : TargetPayloadSize_t) return HeaderFlits_t is
+    function BuildHeaders(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSize : TargetPayloadSize_t) return HeaderFlits_t is
         variable tempArray : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1);
     begin
 
@@ -117,7 +129,12 @@ package body PE_PKG is
 
         return tempArray;
 
-    end function FillHeaderFlitsArray;
+    end function BuildHeaders;
 
+    function BuildPayloads() return PayloadFlits_t is
+
+    begin
+        
+    end function BuildPayloads;
 
 end package body PE_PKG;

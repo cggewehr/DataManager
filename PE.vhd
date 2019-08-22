@@ -63,7 +63,7 @@ architecture Injector of PE is
     -- COMM STRUCTURE INTERFACE CONSTANTS ("NOC", "XBR", "BUS")
     constant CommStructure: string(1 to 3) := jsonGetString(PEJSONConfig, "CommStructure");
 
-    -- INJECTOR CONSTANTS ("FXD", "SDP", "PDP") (Serial, Fixed Dependant, Parallel Dependant)
+    -- INJECTOR CONSTANTS ("FXD", "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(PEJSONConfig, "InjectorType");
 
     -- INPUT BUFFER (DATA FROM STRUCTURE)
