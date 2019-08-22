@@ -137,8 +137,10 @@ package body PE_PKG is
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
         variable tempPayload : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1);
         variable payloadFlitString : string(1 to 5);
+        variable timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
+        variable amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
     begin
-        
+
         BuildPayloadLoop: for target in 0 to (TargetPayloadSize'range) loop
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
@@ -172,12 +174,12 @@ package body PE_PKG is
                 elsif payloadFlitString = "TMSTP" then
 
                     -- Flags for "real time" processing
-                    tempPayload(target)(flit) := (others=>'1');
+                    tempPayload(target)(flit) := std_logic_vector(to_unsigned(timestampFlag, DataWidth - 1));
 
                 elsif payloadFlitString = "AMMSG" then 
 
                     -- Flags for "real time" processing
-                    tempPayload(target)(flit) := (0=>'0', others=>'1');
+                    tempPayload(target)(flit) := std_logic_vector(to_unsigned(amountOfMessagesSentFlag, DataWidth - 1));
 
                 elsif payloadFlitString = "BLANK" then
 
@@ -193,7 +195,7 @@ package body PE_PKG is
 
         end loop;
 
-    return tempPayload;
+        return tempPayload;
 
     end function BuildPayloads;
 
@@ -211,7 +213,7 @@ package body PE_PKG is
 
         end loop FindMaxPayloadSizeLoop;
 
-    return MaxPayloadSize;
+        return MaxPayloadSize;
 
     end function FindMaxPayloadSize;
 
