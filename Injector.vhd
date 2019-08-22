@@ -62,8 +62,8 @@ architecture RTL of Injector is
 
     -- Dependant injector constants
     constant PEPos : integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
-    constant TaskID : integer := jsonGetInteger(InjectorJSONConfig, "TaskID");
-    constant ThreadNumber : integer := jsonGetInteger(InjectorJSONConfig, "ThreadNumber");
+    constant AppID : integer := jsonGetInteger(InjectorJSONConfig, "APPID");
+    constant ThreadID : integer := jsonGetInteger(InjectorJSONConfig, "ThreadID");
     constant AverageProcessingTimeInClockPulses : integer := jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses");
 
     -- Source PEs constants
@@ -75,18 +75,17 @@ architecture RTL of Injector is
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
 
     -- Message parameters
-    constant TargetPayloadSize : TargetPayloadSize_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant SourcePayloadSize : SourcetPayloadSize_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
+    constant TargetPayloadSizeArray : TargetPayloadSize_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant SourcePayloadSizeArray : SourcetPayloadSize_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
     constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := FillHeaderFlitsArray(InjectorJSONConfig, AmountOfTargetPEs, HeaderSize, TargetPEsArray, TargetPayloadSize);
 
-    constant TargetMessageSize : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSize, HeaderSize, AmountOfTargetPEs); 
+    constant TargetMessageSizeArray : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSize, HeaderSize, AmountOfTargetPEs); 
 
 begin
 
     inputBufferReadRequest <= '1';
-
 
     FixedRateInjetor: block (InjectorType = "FXD") is
 
