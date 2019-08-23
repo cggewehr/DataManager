@@ -8,9 +8,6 @@ use IEEE.numeric_std.all;
 use work.HeMPS_defaults.all;
 use work.JSON.all;
 
-        --inj_period := ((INJ_PKGSIZE * 100) / INJ_RATE) - INJ_PKGSIZE;
-        --inj_count := INJ_PKGSIZE;
-
 package PE_PKG is
 
     constant DataWidth: integer := TAM_FLIT;
@@ -30,6 +27,8 @@ package PE_PKG is
     function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return PayloadSize_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer ; AmountOfTargetPEs : integer) return TargetMessageSize_t;
     function BuildHeaders(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSize : TargetPayloadSizeArray_t) return HeaderFlits_t;
+    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return PayloadFlits_t;
+    function FindMaxPayloadSize(TargetPayloadSizeArray : TargetPayloadSizeArray_t) return integer;
 
 end package PE_PKG;
 
@@ -133,7 +132,7 @@ package body PE_PKG is
 
     end function BuildHeaders;
 
-    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer ; ) return PayloadFlits_t is
+    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return PayloadFlits_t is
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
         variable tempPayload : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1);
         variable payloadFlitString : string(1 to 5);
@@ -141,7 +140,7 @@ package body PE_PKG is
         variable amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
     begin
 
-        BuildPayloadLoop: for target in 0 to (TargetPayloadSize'range) loop
+        BuildPayloadLoop: for target in 0 to (TargetPayloadSizeArray'range) loop
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
 

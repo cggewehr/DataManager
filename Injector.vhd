@@ -34,13 +34,14 @@ entity Injector is
 		reset : in std_logic;
 
 		-- Input Interface
-		dataIn : in std_logic_vector(dataWidth - 1 downto 0);
+		dataIn : in DataWidth_t;
 		dataInAV : in std_logic;
 		inputBufferReadRequest : out std_logic;
 
 		-- Output Interface
-		dataOut : out std_logic_vector(dataWidth - 1 downto 0);
+		dataOut : out DataWidth_t;
 		dataOutAV : out std_logic;
+        outputBufferSlotAvailable : in std_logic;
 		outputBufferWriteRequest : out std_logic;
         outputBufferWriteACK: in std_logic
 
@@ -79,9 +80,13 @@ architecture RTL of Injector is
     constant SourcePayloadSizeArray : SourcetPayloadSize_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
-    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := FillHeaderFlitsArray(InjectorJSONConfig, AmountOfTargetPEs, HeaderSize, TargetPEsArray, TargetPayloadSize);
+    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, AmountOfTargetPEs, HeaderSize, TargetPEsArray, TargetPayloadSize);
 
     constant TargetMessageSizeArray : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSize, HeaderSize, AmountOfTargetPEs); 
+
+    constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
+
+    constant PayloadFlits : PayloadFlits_t := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray);
 
 begin
 
@@ -91,7 +96,6 @@ begin
 
         type state_t is (Sreset, Ssending, Swaiting);
         signal nextState, currentState : state_t;
-
 
     begin
 
@@ -116,21 +120,61 @@ begin
 
         process(clock)
             variable injectionCounter : integer := 0;
+            variable inj_period := ((INJ_PKGSIZE * 100) / INJ_RATE) - INJ_PKGSIZE;
         begin
 
             if currentState = Sreset then
 
                 injectionCounter := 0;
 
+                inputBufferReadRequest <= '0';
+                outputBufferWriteRequest <= '0';
+                dataOutAV <= '0';
+
                 nextState <= Ssending;
 
-            if currentState = Ssending then
+            elsif currentState = Ssending then
 
+                -- Sends a flit to buffer
+
+                if outputBufferSlotAvailable = '1' then
+
+                    if injectionCounter <= HeaderSize then
+
+                        dataOut <= HeaderFlits(0)(injectionCounter);
+                        dataOutAV <= '1';
+                        outputBufferWriteRequest <= '1';
+
+                        injectionCounter := injectionCounter + 1;
+
+                        nextState <= Ssending;
+
+                    elsif injectionCounter < TargetPayloadSizeArray(0) then
+
+                        dataOut <= PayloadFlits(0)(injectionCounter - HeaderSize);
+                        dataOutAV <= '1';
+                        outputBufferWriteRequest <= '1';
+
+                        injectionCounter := injectorCounter + 1;
+
+                        nextState <= Ssending;
+
+                    else -- Header + Payload has been sent, goes to idilng state
+
+                        nextState <= Swaiting;
+
+                else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
+
+                    nextState <= Ssending;
                 
+            elsif currentState = Swaiting then
 
+                -- Idles to mantain defined injection rate
+
+
+            end if;
 
         end process;
-
 
     end block FixedRateInjetor;
 
