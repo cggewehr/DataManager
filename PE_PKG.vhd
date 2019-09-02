@@ -10,9 +10,11 @@ use work.JSON.all;
 
 package PE_PKG is
 
+    -- Common constants (used by all project files)
     constant DataWidth: integer := TAM_FLIT;
     subtype DataWidth_t is std_logic_vector(DataWidth - 1 downto 0);
 
+    -- Typedefs for injector parameters
     subtype SourcePEsArray_t is array(integer range <>) of integer;
     subtype SourcePayloadSizeArray_t is array(integer range <>) of integer;
     subtype TargetPEsArray_t is array(integer range <>) of integer;
@@ -21,6 +23,7 @@ package PE_PKG is
     subtype HeaderFlits_t is array(integer range <>, integer range <>) of DataWidth_t;
     subtype PayloadFlits_t is array integer range <>, integer range <>) of DataWidth_t;
 
+    -- Function declarations for organizing data from JSON config file
     function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePEsArray_t;
     function FillSourcePayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePayloadSize_t;
 	function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t;
@@ -33,7 +36,6 @@ package PE_PKG is
 end package PE_PKG;
 
 package body PE_PKG is
-
 
     -- Fills array of source PEs 
     function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePEsArray_t is
@@ -90,6 +92,8 @@ package body PE_PKG is
 
     end function;
 
+
+    -- Fills array of target message size (Payload + Header) for each target PE
     function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer ; AmountOfTargetPEs : integer) return TargetMessageSize_t is
         variable tempArray : TargetMessageSize_t(0 to AmountOfTargetPEs - 1);
     begin
@@ -102,6 +106,7 @@ package body PE_PKG is
         
     end function FillTargetMessageSizeArray;
 
+
     -- Builds header for each target PE
     function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return HeaderFlits_t is
         variable tempHeader : HeaderFlits_t(0 to TargetPEsArray'length, 0 to HeaderSize - 1);
@@ -113,6 +118,9 @@ package body PE_PKG is
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
                 headerFlitString := jsonGetString(InjectorJSONConfig, ( "Header/" & integer'image(target) & "/" & integer'image(flit) ) );
+
+                -- Header flit can be : "ADDR" (Address of target PE in network)
+                --                      "SIZE" (Size of payload in this message)
 
                 if headerFlitString = "ADDR" then 
 
@@ -132,6 +140,8 @@ package body PE_PKG is
 
     end function BuildHeaders;
 
+
+    -- Builds payload for each target PE
     function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return PayloadFlits_t is
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
         variable tempPayload : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1);
@@ -198,6 +208,8 @@ package body PE_PKG is
 
     end function BuildPayloads;
 
+
+    -- Returns highest value in the TargetPayloadSizeArray array
     function FindMaxPayloadSize(TargetPayloadSizeArray : TargetPayloadSizeArray_t) return integer is
         variable MaxPayloadSize : integer := 0;
     begin
