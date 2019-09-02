@@ -101,7 +101,7 @@ begin
 
         process(clock, reset) begin
 
-            if rising_edge(clk) then
+            if rising_edge(clock) then
 
                 if reset = '1' then
 
@@ -117,60 +117,72 @@ begin
 
         end process;
 
-
         process(clock)
-            variable injectionCounter : integer := 0;
-            variable inj_period := ((INJ_PKGSIZE * 100) / INJ_RATE) - INJ_PKGSIZE;
+            variable injectionCounter := 0;
+            variable injectionPeriod := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
         begin
 
-            if currentState = Sreset then
+            if rising_edge(clock) then
 
-                injectionCounter := 0;
+                if currentState = Sreset then
 
-                inputBufferReadRequest <= '0';
-                outputBufferWriteRequest <= '0';
-                dataOutAV <= '0';
+                    injectionCounter := 0;
+                    injectionPeriod := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
 
-                nextState <= Ssending;
+                    inputBufferReadRequest <= '0';
+                    outputBufferWriteRequest <= '0';
+                    dataOutAV <= '0';
 
-            elsif currentState = Ssending then
+                    nextState <= Ssending;
 
-                -- Sends a flit to buffer
+                elsif currentState = Ssending then
 
-                if outputBufferSlotAvailable = '1' then
+                    -- Sends a flit to buffer
 
-                    if injectionCounter <= HeaderSize then
+                    if outputBufferSlotAvailable = '1' then
 
-                        dataOut <= HeaderFlits(0)(injectionCounter);
                         dataOutAV <= '1';
                         outputBufferWriteRequest <= '1';
+
+                        if injectionCounter < HeaderSize then
+
+                            dataOut <= HeaderFlits(0)(injectionCounter);
+
+                        elsif injectionCounter < TargetMessageSizeArray(0) then
+
+                            dataOut <= PayloadFlits(0)(injectionCounter - HeaderSize);
+
+                        end if;
 
                         injectionCounter := injectionCounter + 1;
 
+                        if injectionCounter = TargetMessageSizeArray(0) then
+                            injectionCounter := 0;
+                            nextState <= Swaiting;
+                        else
+                            nextState <= Ssending;
+                        end if;
+
+                    else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
+
                         nextState <= Ssending;
 
-                    elsif injectionCounter < TargetPayloadSizeArray(0) then
+                    end if;
+                    
+                elsif currentState = Swaiting then -- Idles to mantain defined injection rate
 
-                        dataOut <= PayloadFlits(0)(injectionCounter - HeaderSize);
-                        dataOutAV <= '1';
-                        outputBufferWriteRequest <= '1';
+                    outputBufferWriteRequest <= '0';
 
-                        injectionCounter := injectorCounter + 1;
+                    injectionCounter := injectionCounter + 1;
 
+                    if injectionCounter = injectionPeriod then
+                        injectionCounter := 0;
                         nextState <= Ssending;
-
-                    else -- Header + Payload has been sent, goes to idilng state
-
+                    else
                         nextState <= Swaiting;
+                    end if;
 
-                else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
-
-                    nextState <= Ssending;
-                
-            elsif currentState = Swaiting then
-
-                -- Idles to mantain defined injection rate
-
+                end if;
 
             end if;
 
