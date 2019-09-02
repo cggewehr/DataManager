@@ -26,7 +26,7 @@ package PE_PKG is
 	function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t;
     function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return PayloadSize_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer ; AmountOfTargetPEs : integer) return TargetMessageSize_t;
-    function BuildHeaders(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSize : TargetPayloadSizeArray_t) return HeaderFlits_t;
+    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSize : TargetPayloadSizeArray_t) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray : TargetPayloadSizeArray_t) return integer;
 
@@ -103,12 +103,12 @@ package body PE_PKG is
     end function FillTargetMessageSizeArray;
 
     -- Builds header for each target PE
-    function BuildHeaders(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return HeaderFlits_t is
-        variable tempHeader : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1);
+    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return HeaderFlits_t is
+        variable tempHeader : HeaderFlits_t(0 to TargetPEsArray'length, 0 to HeaderSize - 1);
         variable headerFlitString : string(1 to 4);
     begin
 
-        BuildHeaderLoop: for target in 0 to (AmountOfTargetPEs - 1) loop
+        BuildHeaderLoop: for target in (TargetPEsArray'range) loop
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
@@ -140,7 +140,7 @@ package body PE_PKG is
         variable amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
     begin
 
-        BuildPayloadLoop: for target in 0 to (TargetPayloadSizeArray'range) loop
+        BuildPayloadLoop: for target in (TargetPayloadSizeArray'range) loop
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
 
