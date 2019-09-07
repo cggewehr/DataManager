@@ -52,7 +52,7 @@ entity PE is
         address             : out std_logic_vector(29 downto 0);
         data_read           : in  std_logic_vector(31 downto 0) 
     );
-end PE;
+end entity PE;
 
 architecture Injector of PE is
 
