@@ -17,6 +17,7 @@ package PE_PKG is
     -- Typedefs for injector parameters
     subtype SourcePEsArray_t is array(integer range <>) of integer;
     subtype SourcePayloadSizeArray_t is array(integer range <>) of integer;
+    subtype SourceMessageSizeArray_t is array(integer range <>) of integer;
     subtype TargetPEsArray_t is array(integer range <>) of integer;
     subtype TargetPayloadSizeArray_t is array(integer range <>) of integer;
     subtype TargetMessageSizeArray_t is array(integer range <>) of integer;
@@ -37,6 +38,7 @@ end package PE_PKG;
 
 package body PE_PKG is
 
+
     -- Fills array of source PEs 
     function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePEsArray_t is
         variable tempArray : SourcePEsArray_t(0 to AmountOfSourcePEs - 1);
@@ -53,7 +55,7 @@ package body PE_PKG is
 
     -- Fills array of source payload size for each source PE
     function FillSourcePayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePayloadSizeArray_t is
-        variable tempArray : SourcePayloadSize_t(0 to AmountOfSourcePEs - 1);
+        variable tempArray : SourcePayloadSizeArray_t(0 to AmountOfSourcePEs - 1);
     begin
 
         FillSourcePayloadSizeLoop: for i in 0 to (AmountOfSourcePEs - 1) loop 
@@ -65,7 +67,21 @@ package body PE_PKG is
     end function;
 
 
-	-- Fills array of target PEs
+    -- Fills array of source message size for each source PE
+    function FillSourceMessageSizeArray(SourcePayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer) return SourceMessageSizeArray_t is
+        variable tempArray : SourceMessageSizeArray_t(SourcePayloadSizeArray'range);
+    begin
+
+        FillSourceMessageSizeLoop: for i in (SourcePayloadSizeArray'range) loop 
+            tempArray(i) := SourcePayloadSizeArray(i) + HeaderSize;
+        end loop FillSourcePayloadSizeLoop;
+
+        return tempArray;
+
+    end function;
+
+
+	-- Fills array of target PEs 
     function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t is
         variable tempArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1);
     begin
@@ -81,7 +97,7 @@ package body PE_PKG is
 
     -- Fills array of target payload size for each target PE
     function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPayloadSizeArray_t is
-        variable tempArray : TargetPayloadSize_t(0 to AmountOfTargetPEs - 1);
+        variable tempArray : TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1);
     begin
 
         FillTargetPayloadSizeLoop: for i in 0 to (AmountOfTargetPEs - 1) loop 
@@ -94,13 +110,13 @@ package body PE_PKG is
 
 
     -- Fills array of target message size (Payload + Header) for each target PE
-    function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer ; AmountOfTargetPEs : integer) return TargetMessageSize_t is
-        variable tempArray : TargetMessageSize_t(0 to AmountOfTargetPEs - 1);
+    function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer) return TargetMessageSize_t is
+        variable tempArray : TargetMessageSizeArray_t(TargetPayloadSizeArray'range);
     begin
 
-        FillTargetMessageSizeLoop : for i in 0 to AmountOfTargetPEs loop
+        FillTargetMessageSizeLoop : for i in TargetPayloadSizeArray'range loop
             
-            tempArray(i) <= TargetPayloadSizeArray(i) + HeaderSize;
+            tempArray(i) := TargetPayloadSizeArray(i) + HeaderSize;
 
         end loop;
         
