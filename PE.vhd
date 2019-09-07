@@ -34,11 +34,11 @@ entity PE is
 	   -- NoC Interface      
         clock_tx            : out std_logic;
         tx                  : out std_logic;
-        data_out            : out DataWidth;
+        data_out            : out DataWidth_t;
         credit_i            : in  std_logic;
         clock_rx            : in  std_logic;        
         rx                  : in  std_logic;
-        data_in             : in  DataWidth;
+        data_in             : in  DataWidth_t;
         credit_o            : out std_logic;    -- Debug MC
         write_enable_debug  : out std_logic; 
         data_out_debug      : out std_logic_vector(31 downto 0);
