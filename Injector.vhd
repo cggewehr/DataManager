@@ -89,7 +89,7 @@ architecture RTL of Injector is
 
     constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
-    constant PayloadFlits : PayloadFlits_t := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray);
+    constant PayloadFlits : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray);
 
     -- Payload Flags
     constant timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
