@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
 
 entity CircularBuffer is
     
@@ -27,7 +28,7 @@ entity CircularBuffer is
         -- Flags
         bufferEmptyFlag : out std_logic;
         bufferFullFlag : out std_logic;
-        bufferAvailableFlag : out std_logic;
+        bufferAvailableFlag : out std_logic
 
     );
 
@@ -35,7 +36,8 @@ end entity CircularBuffer;
 
 architecture RTL of CircularBuffer is
 
-    signal buffer : array(bufferSize - 1 downto 0) of std_logic_vector(dataWidth - 1 downto 0);
+    type bufferArray_t is array (natural range <>) of std_logic_vector(dataWidth - 1 downto 0);
+    signal bufferArray : bufferArray_t(bufferSize - 1 downto 0);
 
     signal readPointer : integer range 0 to BufferSize - 1;
     signal writePointer: integer range 0 to BufferSize - 1;
@@ -89,7 +91,7 @@ begin
 
             if writeRequest = '1' and dataInAV = '1' then
 
-                buffer(writePointer) <= dataIn;
+                bufferArray(writePointer) <= dataIn;
                 writeACK <= '1';
                 incr(writePointer);
                 incr(dataCount);
@@ -115,7 +117,7 @@ begin
 
             if readRequest = '1' then
 
-                dataOut <= buffer(readPointer);
+                dataOut <= bufferArray(readPointer);
                 dataOutAV <= '1';
                 incr(readPointer);
                 decr(dataCount);
