@@ -254,9 +254,6 @@ begin
 
                                 end if;
 
-                                -- Gets new injection period value (according to new message)
-                                injectionPeriod := ( (TargetMessageSizeArray(currentTargetPE) * 100) / InjectionRate) - TargetMessageSizeArray(currentTargetPE)
-
                             end if;
 
                         else
@@ -287,10 +284,17 @@ begin
 
                     -- Decides whether to send another flit or idle to maintain injection rate
                     if injectionCounter = injectionPeriod then
+
                         injectionCounter := 0;
                         nextState := Ssending;
+
+                        -- Gets new injection period value (according to new message)
+                        injectionPeriod := ( (TargetMessageSizeArray(currentTargetPE) * 100) / InjectionRate) - TargetMessageSizeArray(currentTargetPE);
+
                     else
+
                         nextState := Swaiting;
+                        
                     end if;
 
                 end if;
