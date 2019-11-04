@@ -147,7 +147,7 @@ begin
             variable burstCounter : integer := 0;
 
             type state_t is (Sreset, Ssending, Swaiting);
-            signal nextState, currentState : state_t;
+            variable nextState, currentState : state_t;
 
         begin
 
