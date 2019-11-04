@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------
--- Package com tipos basicos
+-- Package containing JSON translation functions and basic type definitions
 --------------------------------------------------------------------------
 
 library IEEE;
@@ -23,6 +23,7 @@ package PE_PKG is
     type TargetPEsArray_t is array(integer range <>) of integer;
     type TargetPayloadSizeArray_t is array(integer range <>) of integer;
     type TargetMessageSizeArray_t is array(integer range <>) of integer;
+    type AmountOfMessagesInBurst_t is array(integer range <>) of integer;
     type HeaderFlits_t is array(integer range <>, integer range <>) of DataWidth_t;
     type PayloadFlits_t is array (integer range <>, integer range <>) of DataWidth_t;
 
@@ -32,6 +33,7 @@ package PE_PKG is
 	function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t;
     function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPayloadSizeArray_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer) return TargetMessageSizeArray_t;
+    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurst_t;
     function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray : TargetPayloadSizeArray_t) return integer;
@@ -127,6 +129,22 @@ package body PE_PKG is
     end function FillTargetMessageSizeArray;
 
 
+    -- Fills array of amount of messages in a burst for each target PE
+    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurst_t is
+        variable tempArray : TargetMessageSizeArray_t(0 to AmountOfTargetPEs - 1);
+    begin
+
+        FillAmountOfMessagesInBurstArrayLoop : for i in 0 to (AmountOfTargetPEs - 1) loop
+            
+            tempArray(i) := integer'value(jsonGetString(InjectorJSONConfig, ( "AmountOfMessagesInBurst/" & integer'image(i) ) ) );
+
+        end loop;
+        
+        return tempArray;        
+
+    end function FillAmountOfMessagesInBurstArray;
+
+
     -- Builds header for each target PE
     function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return HeaderFlits_t is
         variable tempHeader : HeaderFlits_t(0 to TargetPEsArray'length, 0 to HeaderSize - 1);
@@ -139,8 +157,8 @@ package body PE_PKG is
 
                 headerFlitString := jsonGetString(InjectorJSONConfig, ( "Header/" & integer'image(target) & "/" & integer'image(flit) ) );
 
-                -- Header flit can be : "ADDR" (Address of target PE in network)
-                --                      "SIZE" (Size of payload in this message)
+                -- A header flit can be : "ADDR" (Address of target PE in network)
+                --                        "SIZE" (Size of payload in this message)
 
                 if headerFlitString = "ADDR" then 
 
@@ -176,13 +194,13 @@ package body PE_PKG is
 
                 payloadFlitString := jsonGetString(InjectorJSONConfig, "Payload/" & integer'image(target) & "/" & integer'image(flit) );
 
-                -- Payload flit can be : "PEPOS" (PE position in network), 
-                --                       "APPID" (ID of app being emulated by this injector), 
-                --                       "THDID" (ID of thread of the app being emulated in this PE),
-                --                       "AVGPT" (Average processing time of a message received by the app being emulated by this PE),
-                --                       "TMSTP" (Timestamp of message being sent (to be set in real time, not in this function)),
-                --                       "AMMSG" (Amount of messages sent by this PE (also to be se in real time)),
-                --                       "BLANK" (Fills with zeroes)
+                -- A payload flit can be : "PEPOS" (PE position in network), 
+                --                         "APPID" (ID of app being emulated by this injector), 
+                --                         "THDID" (ID of thread of the app being emulated in this PE),
+                --                         "AVGPT" (Average processing time of a message received by the app being emulated by this PE),
+                --                         "TMSTP" (Timestamp of message being sent (to be set in real time, not in this function)),
+                --                         "AMMSG" (Amount of messages sent by this PE (also to be se in real time)),
+                --                         "BLANK" (Fills with zeroes)
                 
                 if payloadFlitString = "PEPOS" then
 

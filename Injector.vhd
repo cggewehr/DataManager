@@ -1,10 +1,10 @@
 ---------------------------------------------------------------------------------------------------------
--- DESIGN UNIT  : MSG Injector (Fixed injection rate, series dependent or parallel dependent)          --
+-- DESIGN UNIT  : MSG Injector (Fixed injection rate or series dependent)                              --
 -- DESCRIPTION  :                                                                                      --
 -- AUTHOR       : Carlos Gabriel de Araujo Gewehr                                                      --
--- CREATED      : Aug 13th, 2019                                                                        --
+-- CREATED      : Aug 13th, 2019                                                                       --
 -- VERSION      : v0.1                                                                                 --
--- HISTORY      : Version 0.1 - Aug 13th, 2019                                                          --
+-- HISTORY      : Version 0.1 - Aug 13th, 2019                                                         --
 ---------------------------------------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------------------------------------
@@ -56,12 +56,14 @@ architecture RTL of Injector is
 	-- JSON configuration file
     constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
 
-    -- Injector type
+    -- Injector type ("FXD" or "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
+
+    -- Message Flow type ("RND" or "DTM")
+    constant FlowType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "FlowType");
 
     -- Fixed injection rate injector constants
     constant InjectionRate: integer range 0 to 100 := jsonGetInteger(InjectorJSONConfig, "InjectionRate");
-    constant AmountOfMessagesInBurst: integer := jsonGetInteger(InjectorJSONConfig, "AmountOfMessagesInBurst");
 
     -- Dependant injector constants
     constant PEPos : integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
@@ -76,6 +78,7 @@ architecture RTL of Injector is
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
     constant AmountOfTargetPEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant AmountOfMessagesInBurst: AmountOfMessagesInBurst_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
 
     -- Message parameters
     constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
@@ -98,8 +101,22 @@ architecture RTL of Injector is
     -- Clock Counter
     signal ClockCounter : DataWidth_t;
 
+    -- Simple increment and wrap around
+    procedure incr(signal value: inout integer ; maxValue: in integer ; minValue: in integer) is
+
+    begin
+
+        if value = maxValue then
+            value <= minValue;
+        else
+            value <= value + 1;
+        end if;
+
+    end procedure;
+
 begin
 
+    -- A simple clock rising edge counter. Wraps back to 0 once maximum allowed value is reached.
     CLKCOUNTER : process(clock, reset) begin
 
         if reset = '1' then
@@ -108,12 +125,13 @@ begin
 
         elsif rising_edge(clock) then
 
-            ClockCounter <= ClockCounter + 1;
+            incr(conv_integer(unsigned(ClockCounter)), 2**(ClockCounter'length) , 0);
 
         end if;
 
     end process;
 
+    -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
     FixedRateInjetor: block (InjectorType = "FXD") is
 
         type state_t is (Sreset, Ssending, Swaiting);
@@ -140,19 +158,24 @@ begin
         end process;
 
         Transmitter: process(clock)
+
             variable injectionCounter : integer := 0;
             variable injectionPeriod : integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
             variable flitTemp : DataWidth_t := (others=>'0');
             variable firstFlitOutTimestamp : DataWidth_t;
             variable amountOfMessagesSent : DataWidth_t;
+            variable currentTargetPE : integer := 0;
+            variable burstCounter : integer := 0;
+
         begin
 
             if rising_edge(clock) then
 
+                -- Sets default values
                 if currentState = Sreset then
 
                     injectionCounter := 0;
-                    injectionPeriod := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
+                    injectionPeriod := ( (TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
 
                     inputBufferReadRequest <= '0';
                     outputBufferWriteRequest <= '0';
@@ -161,9 +184,13 @@ begin
                     firstFlitOutTimestamp := (others=>'0');
                     amountOfMessagesSent := (others=>'0');
 
+                    currentTargetPE := 0;
+                    burstCounter := 0;
+
                     nextState <= Ssending;
 
-                elsif currentState = Ssending then -- Sends a flit to output buffer
+                -- Sends a flit to output buffer
+                elsif currentState = Ssending then
 
                     -- Sends a flit to buffer
                     if outputBufferSlotAvailable = '1' then
@@ -179,14 +206,13 @@ begin
                             end if;
 
                             -- A Header flit will be sent
-                            --dataOut <= HeaderFlits(0)(injectionCounter);
-                            flitTemp := HeaderFlits(0)(injectionCounter);
+                            flitTemp := HeaderFlits(currentTargetPE)(injectionCounter);
 
                         elsif injectionCounter < TargetMessageSizeArray(0) then
 
                             -- A Payload flit will be sent
                             --dataOut <= PayloadFlits(0)(injectionCounter - HeaderSize);
-                            flitTemp := PayloadFlits(0)(injectionCounter - HeaderSize);
+                            flitTemp := PayloadFlits(currentTargetPE)(injectionCounter - HeaderSize);
 
                         end if;
 
@@ -210,12 +236,32 @@ begin
                         -- Decides whether to send another flit or idle to maintain injection rate
                         if injectionCounter = TargetMessageSizeArray(0) then
 
-                            -- Increments message counter. Will idle next state
+                            -- Message has been sent, will idle next state
                             dataOutAV <= '1';
                             outputBufferWriteRequest <= '1';
                             injectionCounter := 0;
                             amountOfMessagesSent := amountOfMessagesSent + 1;
+                            burstCounter := burstCounter + 1;
                             nextState <= Swaiting;
+
+                            -- Determines if burst has ended
+                            if burstCounter = AmountOfMessagesInBurst(currentTargetPE) then
+
+                                burstCounter = 0;
+
+                                -- Determines next target PE
+                                if FlowType = "RND" then
+
+                                    -- TODO: Get a random target
+
+                                elsif FlowType = "DTM" then
+
+                                    -- Next message will be sent to next sequential target as defined on TargetPEsArray
+                                    incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+
+                                end if;
+
+                            end if;
 
                         else
 
@@ -233,12 +279,14 @@ begin
 
                     end if;
                     
-                elsif currentState = Swaiting then -- Idles to maintain defined injection rate
+                 -- Idles to maintain defined injection rate
+                elsif currentState = Swaiting then
 
-                    -- Data isn't valid
+                    -- Signals dataout isn't valid
                     dataOutAV <= '0';
                     outputBufferWriteRequest <= '0';
 
+                    -- Increments flit counter
                     injectionCounter := injectionCounter + 1;
 
                     -- Decides whether to send another flit or idle to maintain injection rate
@@ -262,7 +310,7 @@ begin
             variable flitCounter : integer := 0;
             variable messageCounter : integer := 0;
             variable messageSize : integer := 10;
-            variable currentSourceAddr : integer;
+            --variable currentSourceAddr : integer;
             variable lastMessageTimestamp : DataWidth_t;
         begin
 
@@ -301,6 +349,7 @@ begin
 
     end block FixedRateInjetor;
 
+    -- Waits for a specific message, then sends out messages after that message is received. (Only instanciated if InjectorType is set as "DPD" on JSON config file).
 	DependantInjector : block (InjectorType = "DPD") is
         
     begin
