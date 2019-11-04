@@ -155,6 +155,7 @@ package body PE_PKG is
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
+                --                                                                    Translates loop iterator to PE ID
                 headerFlitString := jsonGetString(InjectorJSONConfig, ( "Header/" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit) ) );
 
                 -- A header flit can be : "ADDR" (Address of target PE in network)
@@ -192,6 +193,7 @@ package body PE_PKG is
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
 
+                --                                                                    Translates loop iterator to PE ID
                 payloadFlitString := jsonGetString(InjectorJSONConfig, "Payload/" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit) );
 
                 -- A payload flit can be : "PEPOS" (PE position in network), 
