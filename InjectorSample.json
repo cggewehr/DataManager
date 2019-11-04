@@ -1,27 +1,29 @@
 {
   "InjectorType": "FXD",
   "FlowType": "RND",
-  "InjectionRate": 50,
-  "PEPos": 0,
-  "APPID": 1,
-  "ThreadID": 0,
-  "AverageProcessingTimeInClockPulses": 1,
-  "AmountOfSourcePEs": 1,
+  "InjectionRate": "50",
+  "PEPos": "0",
+  "APPID": "1",
+  "ThreadID": "0",
+  "AverageProcessingTimeInClockPulses": "1",
+  "AmountOfSourcePEs": "1",
   "SourcePEs": [
-    1
+    "1"
   ],
   "SourcePayloadSize": [
-    10
+    "10"
   ],
-  "AmountOFTargetPEs": 1,
+  "AmountOFTargetPEs": "1",
   "TargetPEs": [
-    2
+    "2"
   ],
-  "AmountOfMessagesInBurst": 1,
+  "AmountOfMessagesInBurst": [
+    "5"
+  ],
   "TargetPayloadSize": [
-    20
+    "20"
   ],
-  "HeaderSize": 2,
+  "HeaderSize": "2",
   "Header": {
     "2": [
       "ADDR",
