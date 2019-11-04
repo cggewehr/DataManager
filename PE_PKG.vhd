@@ -147,7 +147,7 @@ package body PE_PKG is
 
     -- Builds header for each target PE
     function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return HeaderFlits_t is
-        variable tempHeader : HeaderFlits_t(0 to TargetPEsArray'length, 0 to HeaderSize - 1);
+        variable tempHeader : HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
         variable headerFlitString : string(1 to 4);
     begin
 
@@ -182,7 +182,7 @@ package body PE_PKG is
     -- Builds payload for each target PE
     function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return PayloadFlits_t is
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
-        variable tempPayload : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1);
+        variable tempPayload : PayloadFlits_t(TargetPEsArray'range, 0 to MaxPayloadSize - 1);
         variable payloadFlitString : string(1 to 5);
         variable timestampFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "timestampFlag"));
         variable amountOfMessagesSentFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "amountOfMessagesSentFlag"));
