@@ -63,20 +63,20 @@ architecture RTL of Injector is
     constant FlowType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "FlowType");
 
     -- Fixed injection rate injector constants
-    constant InjectionRate: integer range 0 to 100 := jsonGetInteger(InjectorJSONConfig, "InjectionRate");
+    constant InjectionRate: integer range 0 to 100 := integer'value(jsonGetString(InjectorJSONConfig, "InjectionRate"));
 
     -- Dependant injector constants
-    constant PEPos : integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
-    constant AppID : integer := jsonGetInteger(InjectorJSONConfig, "APPID");
-    constant ThreadID : integer := jsonGetInteger(InjectorJSONConfig, "ThreadID");
-    constant AverageProcessingTimeInClockPulses : integer := jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses");
+    constant PEPos : integer := integer'value(jsonGetString(InjectorJSONConfig, "PEPos"));
+    constant AppID : integer := integer'value(jsonGetString(InjectorJSONConfig, "APPID"));
+    constant ThreadID : integer := integer'value(jsonGetString(InjectorJSONConfig, "ThreadID"));
+    constant AverageProcessingTimeInClockPulses : integer := integer'value(jsonGetString(InjectorJSONConfig, "AverageProcessingTimeInClockPulses"));
 
     -- Source PEs constants
-    constant AmountOfSourcePEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
+    constant AmountOfSourcePEs : integer := integer'value(jsonGetString(InjectorJSONConfig, "AmountOfSourcePEs"));
     constant SourcePEsArray : SourcePEsArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePEsArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
-    constant AmountOfTargetPEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
+    constant AmountOfTargetPEs : integer := integer'value(jsonGetString(InjectorJSONConfig, "AmountOfTargetPEs"));
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
     constant AmountOfMessagesInBurst: AmountOfMessagesInBurst_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
 
@@ -84,7 +84,7 @@ architecture RTL of Injector is
     constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
     constant SourcePayloadSizeArray : SourcetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
 
-    constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
+    constant HeaderSize : integer := integer'value(jsonGetString(InjectorJSONConfig, "HeaderSize"));
     constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPEsArray, TargetPayloadSizeArray);
 
     constant TargetMessageSizeArray : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
@@ -95,8 +95,8 @@ architecture RTL of Injector is
     constant PayloadFlits : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray);
 
     -- Payload Flags
-    constant timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
-    constant amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
+    constant timestampFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "timestampFlag"));
+    constant amountOfMessagesSentFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "amountOfMessagesSentFlag"));
 
     -- Clock Counter
     signal ClockCounter : DataWidth_t;
