@@ -134,30 +134,9 @@ begin
     -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
     FixedRateInjetor: block (InjectorType = "FXD") is
 
-        type state_t is (Sreset, Ssending, Swaiting);
-        signal nextState, currentState : state_t;
-
     begin
 
-        NextStateLogic: process(clock, reset) begin
-
-            if rising_edge(clock) then
-
-                if reset = '1' then
-
-                    currentState <= Sreset;
-
-                else
-
-                    currentState <= nextState;
-
-                end if;
-
-            end if;
-
-        end process;
-
-        Transmitter: process(clock)
+        Transmitter: process(clock, reset)
 
             variable injectionCounter : integer := 0;
             variable injectionPeriod : integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
@@ -167,9 +146,22 @@ begin
             variable currentTargetPE : integer := 0;
             variable burstCounter : integer := 0;
 
+            type state_t is (Sreset, Ssending, Swaiting);
+            signal nextState, currentState : state_t;
+
         begin
 
             if rising_edge(clock) then
+
+                if reset = '1' then
+
+                    currentState := Sreset;
+
+                else
+
+                    currentState := nextState;
+
+                end if;
 
                 -- Sets default values
                 if currentState = Sreset then
@@ -187,7 +179,7 @@ begin
                     currentTargetPE := 0;
                     burstCounter := 0;
 
-                    nextState <= Ssending;
+                    nextState := Ssending;
 
                 -- Sends a flit to output buffer
                 elsif currentState = Ssending then
@@ -242,10 +234,10 @@ begin
                             injectionCounter := 0;
                             amountOfMessagesSent := amountOfMessagesSent + 1;
                             burstCounter := burstCounter + 1;
-                            nextState <= Swaiting;
+                            nextState := Swaiting;
 
                             -- Determines if burst has ended
-                            if burstCounter = AmountOfMessagesInBurst(currentTargetPE) then
+                            if burstCounter = (AmountOfMessagesInBurst(currentTargetPE)) then
 
                                 burstCounter = 0;
 
@@ -268,14 +260,14 @@ begin
                             -- Signals dataOut is valid. Will send another flit next sate
                             dataOutAV <= '1';
                             outputBufferWriteRequest <= '1';
-                            nextState <= Ssending;
+                            nextState := Ssending;
 
                         end if;
 
                     else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
 
                         -- TODO: Assert message signaling unavailable buffer
-                        nextState <= Ssending;
+                        nextState := Ssending;
 
                     end if;
                     
@@ -292,9 +284,9 @@ begin
                     -- Decides whether to send another flit or idle to maintain injection rate
                     if injectionCounter = injectionPeriod then
                         injectionCounter := 0;
-                        nextState <= Ssending;
+                        nextState := Ssending;
                     else
-                        nextState <= Swaiting;
+                        nextState := Swaiting;
                     end if;
 
                 end if;
