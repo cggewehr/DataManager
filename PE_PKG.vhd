@@ -34,8 +34,8 @@ package PE_PKG is
     function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPayloadSizeArray_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer) return TargetMessageSizeArray_t;
     function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurst_t;
-    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return HeaderFlits_t;
-    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return PayloadFlits_t;
+    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return HeaderFlits_t;
+    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray : TargetPayloadSizeArray_t) return integer;
 
 end package PE_PKG;
@@ -146,7 +146,7 @@ package body PE_PKG is
 
 
     -- Builds header for each target PE
-    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPEsArray : TargetPEsArray_t ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return HeaderFlits_t is
+    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return HeaderFlits_t is
         variable tempHeader : HeaderFlits_t(0 to TargetPEsArray'length, 0 to HeaderSize - 1);
         variable headerFlitString : string(1 to 4);
     begin
@@ -155,7 +155,7 @@ package body PE_PKG is
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
-                headerFlitString := jsonGetString(InjectorJSONConfig, ( "Header/" & integer'image(target) & "/" & integer'image(flit) ) );
+                headerFlitString := jsonGetString(InjectorJSONConfig, ( "Header/" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit) ) );
 
                 -- A header flit can be : "ADDR" (Address of target PE in network)
                 --                        "SIZE" (Size of payload in this message)
@@ -180,7 +180,7 @@ package body PE_PKG is
 
 
     -- Builds payload for each target PE
-    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t) return PayloadFlits_t is
+    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return PayloadFlits_t is
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
         variable tempPayload : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1);
         variable payloadFlitString : string(1 to 5);
@@ -192,7 +192,7 @@ package body PE_PKG is
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
 
-                payloadFlitString := jsonGetString(InjectorJSONConfig, "Payload/" & integer'image(target) & "/" & integer'image(flit) );
+                payloadFlitString := jsonGetString(InjectorJSONConfig, "Payload/" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit) );
 
                 -- A payload flit can be : "PEPOS" (PE position in network), 
                 --                         "APPID" (ID of app being emulated by this injector), 
@@ -265,7 +265,7 @@ package body PE_PKG is
         return MaxPayloadSize;
 
     end function FindMaxPayloadSize;
-    
+
 
 end package body PE_PKG;
 

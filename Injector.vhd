@@ -85,14 +85,14 @@ architecture RTL of Injector is
     constant SourcePayloadSizeArray : SourcetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     constant HeaderSize : integer := integer'value(jsonGetString(InjectorJSONConfig, "HeaderSize"));
-    constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPEsArray, TargetPayloadSizeArray);
+    constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray);
 
     constant TargetMessageSizeArray : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
     constant SourceMessageSizeArray : SourceMessageSize_t := FillSourceMessageSizeArray(SourcePayloadSizeArray, HeaderSize);
 
     constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
-    constant PayloadFlits : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray);
+    constant PayloadFlits : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray, TargetPEsArray);
 
     -- Payload Flags
     constant timestampFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "timestampFlag"));
@@ -244,6 +244,7 @@ begin
                                 -- Determines next target PE
                                 if FlowType = "RND" then
 
+                                    -- TODO: Implement RNG
                                     -- TODO: Get a random target
 
                                 elsif FlowType = "DTM" then
@@ -252,6 +253,9 @@ begin
                                     incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
 
                                 end if;
+
+                                -- Gets new injection period value (according to new message)
+                                injectionPeriod := ( (TargetMessageSizeArray(currentTargetPE) * 100) / InjectionRate) - TargetMessageSizeArray(currentTargetPE)
 
                             end if;
 
