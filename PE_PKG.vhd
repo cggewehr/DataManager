@@ -156,6 +156,7 @@ package body PE_PKG is
 
                 -- A header flit can be : "ADDR" (Address of target PE in network)
                 --                        "SIZE" (Size of payload in this message)
+                --                        "BLNK" (Fills with zeroes)
 
                 if headerFlitString = "ADDR" then 
 
@@ -164,6 +165,14 @@ package body PE_PKG is
                 elsif headerFlitString = "SIZE" then
 
                     Headers(target, flit) := std_logic_vector(to_unsigned(TargetPayloadSizeArray(target), DataWidth));
+
+                elsif headerFlitString = "BLNK" then
+
+                    Headers(target, flit) := (others => '0');
+
+                else 
+
+                    Headers(target, flit) := (others => '1');
 
                 end if;
                                 

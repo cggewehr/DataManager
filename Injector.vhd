@@ -33,20 +33,20 @@ entity Injector is
 	port (
 
 		-- Basic
-		clock : in std_logic;
-		reset : in std_logic;
+		Clock : in std_logic;
+		Reset : in std_logic;
 
 		-- Input Interface
-		dataIn : in DataWidth_t;
-		dataInAV : in std_logic;
-		inputBufferReadRequest : out std_logic;
+		DataIn : in DataWidth_t;
+		DataInAV : in std_logic;
+		InputBufferReadRequest : out std_logic;
 
 		-- Output Interface
-		dataOut : out DataWidth_t;
-		dataOutAV : out std_logic;
-        outputBufferSlotAvailable : in std_logic;
-		outputBufferWriteRequest : out std_logic;
-        outputBufferWriteACK: in std_logic
+		DataOut : out DataWidth_t;
+		DataOutAV : out std_logic;
+        OutputBufferSlotAvailable : in std_logic;
+		OutputBufferWriteRequest : out std_logic;
+        OutputBufferWriteACK: in std_logic
 
 	);
 
@@ -121,13 +121,13 @@ architecture RTL of Injector is
 begin
 
     -- A simple clock rising edge counter. Wraps back to 0 once maximum allowed value is reached.
-    CLKCOUNTER : process(clock, reset) begin
+    CLKCOUNTER : process(Clock, Reset) begin
 
-        if reset = '1' then
+        if Reset = '1' then
 
             ClockCounter <= 0;
 
-        elsif rising_edge(clock) then
+        elsif rising_edge(Clock) then
 
             incr(ClockCounter, ((2**32) - 1) , 0);
 
@@ -140,7 +140,7 @@ begin
 
     begin
 
-        Transmitter: process(clock, reset)
+        Transmitter: process(Clock, Reset)
 
             variable injectionCounter : integer := 0;
             variable injectionPeriod : integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
@@ -312,36 +312,230 @@ begin
 
         inputBufferReadRequest <= '1';
 
-        -- Assumes message: ADDR, SIZE, PEPOS, BLANK, BLANK,...... of size 10
-        Receiver: process(clock, reset)
+    end block FixedRateInjetor;
+
+    -- Waits for a specific message, then sends out messages after that message is received. (Only instanciated if InjectorType is set as "DPD" on JSON config file).
+	DependantInjector : block (InjectorType = "DPD") is
+        
+    begin
+
+        Transmitter: process(Clock, Reset)
+
+            variable flitCounter : integer := 0;
+            variable processingCounter : integer := 0;
+            variable flitTemp : DataWidth_t := (others=>'0');
+            variable firstFlitOutTimestamp : DataWidth_t;
+            variable amountOfMessagesSent : DataWidth_t;
+            variable currentTargetPE : integer := 0;
+            variable burstCounter : integer := 0;
+
+            type state_t is (Sreset, Swaiting, Sprocessing, Ssending);
+            variable nextState, currentState : state_t;
+
+        begin
+
+            if rising_edge(clock) then
+
+                if reset = '1' then
+
+                    currentState := Sreset;
+
+                else
+
+                    currentState := nextState;
+
+                end if;
+
+                -- Sets default values
+                if currentState = Sreset then
+
+                    injectionCounter := 0;
+                    injectionPeriod := ( (TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
+
+                    inputBufferReadRequest <= '0';
+                    outputBufferWriteRequest <= '0';
+                    dataOutAV <= '0';
+
+                    firstFlitOutTimestamp := (others=>'0');
+                    amountOfMessagesSent := (others=>'0');
+
+                    currentTargetPE := 0;
+                    burstCounter := 0;
+
+                    -- Sets seed for RNG
+                    SRAND(RNGSeed);
+
+                    nextState := Swaiting;
+
+                -- Waits for a message to be received
+                elsif currentState = Swaiting then
+
+                    -- TODO: Check for message received
+                    --if CONDITION then
+                    --    processingCounter := 0;
+                    --    nextState := Sprocessing;
+                    --else
+                    --    nextState := Swaiting;
+                    --end if;
+
+                -- Sends a flit to output buffer
+
+                -- Idle for AverageProcessingTimeInClockPulses, and then send a message burst
+                elsif currentState = Sprocessing then
+
+                    if processingCounter = AverageProcessingTimeInClockPulses then
+
+                        nextState := Ssending;
+
+                    else
+
+                        nextState := Sprocessing;
+
+                    end if;
+
+                elsif currentState = Ssending then
+
+                    -- Sends a flit to buffer
+                    if outputBufferSlotAvailable = '1' then
+
+                        -- Decides what flit to send (Header or Payload)
+                        if injectionCounter < HeaderSize then
+
+                            -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
+                            if injectionCounter = 0 then
+
+                                firstFlitOutTimestamp := ClockCounter;
+
+                            end if;
+
+                            -- A Header flit will be sent
+                            flitTemp := HeaderFlits(currentTargetPE)(injectionCounter);
+
+                        -- Not a header flit
+                        else
+
+                            -- A Payload flit will be sent
+                            flitTemp := PayloadFlits(currentTargetPE)(injectionCounter - HeaderSize);
+
+                        end if;
+
+                        -- Replaces real time flags with respective value
+                        if flitTemp = timestampFlag then
+
+                            flitTemp := firstFlitOutTimestamp;
+
+                        elsif flitTemp = amountOfMessagesSentFlag then
+
+                            flitTemp := amountOfMessagesSent;
+
+                        end if;
+
+                        -- Outbound data bus receives the flit to be sent
+                        dataOut <= flitTemp;
+
+                        -- Increments flits sent counter
+                        injectionCounter := injectionCounter + 1;
+
+                        -- Decides whether to send another flit or idle to maintain injection rate
+                        if injectionCounter = TargetMessageSizeArray(currentTargetPE) then
+
+                            -- Message has been sent, will idle next state
+                            dataOutAV <= '1';
+                            outputBufferWriteRequest <= '1';
+                            injectionCounter := 0;
+                            amountOfMessagesSent := amountOfMessagesSent + 1;
+                            burstCounter := burstCounter + 1;
+                            nextState := Swaiting;
+
+                            -- Determines if burst has ended
+                            if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
+
+                                burstCounter = 0;
+
+                                -- Determines next target PE
+                                if FlowType = "RND" then
+
+                                    -- Uses RAND function from ieee.math_real. Gets a value between 0 and (AmountOfTargetPEs - 1)
+                                    currentTargetPE <= RAND() % AmountOfTargetPEs;
+
+                                elsif FlowType = "DTM" then
+
+                                    -- Next message will be sent to next sequential target as defined on TargetPEsArray
+                                    incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+
+                                end if;
+
+                            end if;
+
+                        else
+
+                            -- Signals dataOut is valid. Will send another flit next sate
+                            dataOutAV <= '1';
+                            outputBufferWriteRequest <= '1';
+                            nextState := Ssending;
+
+                        end if;
+
+
+                    else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
+
+                        -- TODO: Assert message signaling unavailable buffer
+
+                    end if;
+
+                end if;
+
+            end if;
+
+        end process;
+    
+    end block DependantInjector;
+
+
+    -- Assumes header = [ADDR, SIZE]
+    Receiver : block is
+        
+    begin
+
+        ReceiverProcess: process(Clock, Reset)
             variable flitCounter : integer := 0;
             variable messageCounter : integer := 0;
-            variable messageSize : integer := 10;
-            --variable currentSourceAddr : integer;
+            variable currentMessageSize : integer := 0;
             variable lastMessageTimestamp : DataWidth_t;
         begin
 
-            if reset = '1' then
+            if Reset = '1' then
 
                 flitCounter := 0;
                 messageCounter := 0;
 
-            elsif rising_edge(clock) and AmountOfSourcePEs > 0 then
+            elsif rising_edge(Clock) then
                 
                 if dataInAV = '1' then
 
-                    -- First flit in message
+                    -- Checks for an ADDR flit (Assumes a header = [ADDR, SIZE])
                     if flitCounter = 0 then
 
                         lastMessageTimestamp := ClkCounter;
 
                     end if;
 
-                    if flitCounter < messageSize then
+                    -- Checks for a SIZE flit (Assumes a header = [ADDR, SIZE])
+                    if flitCounter = 1 then
+
+                        currentMessageSize := dataIn;
+
+                    end if;
+
+                    -- Increments counter if less than current message size or SIZE flit has not yet been received
+                    if (flitCounter < currentMessageSize) or (flitCounter = 0) then
 
                         flitCounter := flitCounter + 1;
 
+                    -- Whole message has been received, increments message counter and reset flit counter
                     else
+
+                        -- TODO: signal a message has been received to DPD injector
 
                         flitCounter := 0;
                         messageCounter := messageCounter + 1;
@@ -353,14 +547,7 @@ begin
             end if;
 
         end process;
-
-    end block FixedRateInjetor;
-
-    -- Waits for a specific message, then sends out messages after that message is received. (Only instanciated if InjectorType is set as "DPD" on JSON config file).
-	DependantInjector : block (InjectorType = "DPD") is
-        
-    begin
     
-    end block DependantInjector;
+    end block Receiver;
 	
 end architecture RTL;
