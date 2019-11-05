@@ -232,7 +232,7 @@ package body PE_PKG is
 
                 else 
 
-                    Payloads(target, flit) := (others=>'0');
+                    Payloads(target, flit) := (others=>'1');
 
                 end if;
 
