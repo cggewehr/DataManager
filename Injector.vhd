@@ -103,7 +103,7 @@ architecture RTL of Injector is
     constant RNGSeed : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed"));
 
     -- Clock Counter
-    signal ClockCounter : DataWidth_t;
+    signal ClockCounter : integer range 0 to (2**32) - 1 := 0;
 
     -- Simple increment and wrap around
     procedure incr(signal value: inout integer ; maxValue: in integer ; minValue: in integer) is
@@ -125,11 +125,11 @@ begin
 
         if reset = '1' then
 
-            ClockCounter <= (others=>'0');
+            ClockCounter <= 0;
 
         elsif rising_edge(clock) then
 
-            incr(conv_integer(unsigned(ClockCounter)), 2**(ClockCounter'length) , 0);
+            incr(ClockCounter, ((2**32) - 1) , 0);
 
         end if;
 
