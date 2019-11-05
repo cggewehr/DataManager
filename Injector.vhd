@@ -17,6 +17,7 @@ library ieee;
     use ieee.std_logic_1164.all;
     --use ieee.std_logic_unsigned.all;
     use ieee.numeric_std.all;
+    use ieee.math_real.all; -- for random number generation
 
 library work;
     use work.PE_PKG.all;
@@ -97,6 +98,9 @@ architecture RTL of Injector is
     -- Payload Flags
     constant timestampFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "timestampFlag"));
     constant amountOfMessagesSentFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "amountOfMessagesSentFlag"));
+
+    -- RNG Seed
+    constant RNGSeed : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed"));
 
     -- Clock Counter
     signal ClockCounter : DataWidth_t;
@@ -179,6 +183,9 @@ begin
                     currentTargetPE := 0;
                     burstCounter := 0;
 
+                    -- Sets seed for RNG
+                    SRAND(RNGSeed);
+
                     nextState := Ssending;
 
                 -- Sends a flit to output buffer
@@ -246,6 +253,8 @@ begin
 
                                     -- TODO: Implement RNG
                                     -- TODO: Get a random target
+                                    -- Uses RAND function from ieee.math_real. Gets a value between 0 and (AmountOfTargetPEs - 1)
+                                    currentTargetPE <= RAND() % AmountOfTargetPEs;
 
                                 elsif FlowType = "DTM" then
 
