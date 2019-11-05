@@ -24,14 +24,14 @@
     "20"
   ],
   "HeaderSize": "2",
-  "Header": {
-    "2": [
+  "Headers": {
+    "Header2": [
       "ADDR",
       "SIZE"
     ]
   },
-  "Payload": {
-    "2": [
+  "Payloads": {
+    "Payload2": [
       "PEPOS",
       "APPID",
       "THDID",
