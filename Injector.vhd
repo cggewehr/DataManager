@@ -79,7 +79,7 @@ architecture RTL of Injector is
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
     constant AmountOfTargetPEs : integer := integer'value(jsonGetString(InjectorJSONConfig, "AmountOfTargetPEs"));
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant AmountOfMessagesInBurst: AmountOfMessagesInBurst_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArrayArray(InjectorJSONConfig, AmountOfTargetPEs);
 
     -- Message parameters
     constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
@@ -207,10 +207,10 @@ begin
                             -- A Header flit will be sent
                             flitTemp := HeaderFlits(currentTargetPE)(injectionCounter);
 
-                        elsif injectionCounter < TargetMessageSizeArray(0) then
+                        -- Not a header flit
+                        else
 
                             -- A Payload flit will be sent
-                            --dataOut <= PayloadFlits(0)(injectionCounter - HeaderSize);
                             flitTemp := PayloadFlits(currentTargetPE)(injectionCounter - HeaderSize);
 
                         end if;
@@ -229,11 +229,11 @@ begin
                         -- Outbound data bus receives the flit to be sent
                         dataOut <= flitTemp;
 
-                        -- Increments flit counter
+                        -- Increments flits sent counter
                         injectionCounter := injectionCounter + 1;
 
                         -- Decides whether to send another flit or idle to maintain injection rate
-                        if injectionCounter = TargetMessageSizeArray(0) then
+                        if injectionCounter = TargetMessageSizeArray(currentTargetPE) then
 
                             -- Message has been sent, will idle next state
                             dataOutAV <= '1';
@@ -244,15 +244,13 @@ begin
                             nextState := Swaiting;
 
                             -- Determines if burst has ended
-                            if burstCounter = (AmountOfMessagesInBurst(currentTargetPE)) then
+                            if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
 
                                 burstCounter = 0;
 
                                 -- Determines next target PE
                                 if FlowType = "RND" then
 
-                                    -- TODO: Implement RNG
-                                    -- TODO: Get a random target
                                     -- Uses RAND function from ieee.math_real. Gets a value between 0 and (AmountOfTargetPEs - 1)
                                     currentTargetPE <= RAND() % AmountOfTargetPEs;
 
