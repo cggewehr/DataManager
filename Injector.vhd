@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------------------------------------
--- DESIGN UNIT  : MSG Injector (Fixed injection rate or series dependent)                              --
+-- DESIGN UNIT  : MSG Injector (Fixed injection rate or dependent)                                     --
 -- DESCRIPTION  :                                                                                      --
 -- AUTHOR       : Carlos Gabriel de Araujo Gewehr                                                      --
 -- CREATED      : Aug 13th, 2019                                                                       --
@@ -9,8 +9,9 @@
 
 ---------------------------------------------------------------------------------------------------------
 -- TODO         : 
-    -- Make fixed injection rate architecture
-    -- Make dependent architecture
+    -- Make more JSON test cases
+    -- Support task migration emulation
+    -- Generalize message bursts to any number of targets
 ---------------------------------------------------------------------------------------------------------
 
 library ieee;
@@ -176,7 +177,7 @@ begin
 
             if rising_edge(clock) then
 
-                if reset = '1' then
+                if Reset = '1' then
 
                     currentState := Sreset;
 
