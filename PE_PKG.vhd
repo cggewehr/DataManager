@@ -186,7 +186,7 @@ package body PE_PKG is
 
 
     -- Builds payload for each target PE
-    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return PayloadFlits_t is
+    function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return PayloadFlits_t is
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
         variable Payloads : PayloadFlits_t(TargetPEsArray'range, 0 to MaxPayloadSize - 1);
         variable payloadFlitString : string(1 to 5);
@@ -241,6 +241,8 @@ package body PE_PKG is
 
                 else 
 
+                    -- Fills with 1's to signalize to user flits in this array are valid up until the first position that is filled with ones
+                    -- This is needed because some messages might be smaller than "MaxPayloadSize", but arrays containing the message flits will be filled up until "MaxPayloadSize - 1"
                     Payloads(target, flit) := (others=>'1');
 
                 end if;

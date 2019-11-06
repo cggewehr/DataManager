@@ -81,7 +81,7 @@ architecture MPEG of DataManager_NOC is
 begin
     
     -- Control message flow (only allows a new transmission after a whole message is received)
-    FLOWCTRL: block begin
+    FLOWCTRL: block is begin
         process(reset, clock) begin
         
             -- Whole message was received
@@ -98,7 +98,7 @@ begin
     end block FLOWCTRL;
 
     -- Receives and processes messages from NOC
-    PE_RX: block
+    PE_RX: block is
         type state is (S0, S1, S2);
         signal currentState: state;
     begin

@@ -20,6 +20,7 @@ use work.PE_PKG.all;
 use work.JSON.all;
 
 entity PE is 
+
     generic(
         -- Path to JSON file containing PE and APP parameters
         PEConfigFile          : string;
@@ -28,30 +29,31 @@ entity PE is
     port(
 
         -- Basic
-	    clock               : in  std_logic;
-        reset               : in  std_logic;
+	    Clock               : in  std_logic;
+        Reset               : in  std_logic;
 
 	   -- NoC Interface      
-        clock_tx            : out std_logic;
-        tx                  : out std_logic;
-        data_out            : out DataWidth_t;
-        credit_i            : in  std_logic;
-        clock_rx            : in  std_logic;        
-        rx                  : in  std_logic;
-        data_in             : in  DataWidth_t;
-        credit_o            : out std_logic;    -- Debug MC
-        write_enable_debug  : out std_logic; 
-        data_out_debug      : out std_logic_vector(31 downto 0);
-        busy_debug          : in  std_logic;
+        Clock_tx            : out std_logic;
+        Tx                  : out std_logic;
+        Data_out            : out DataWidth_t;
+        Credit_i            : in  std_logic;
+        Clock_rx            : in  std_logic;        
+        Rx                  : in  std_logic;
+        Data_in             : in  DataWidth_t;
+        Credit_o            : out std_logic;    -- Debug MC
+        Write_enable_debug  : out std_logic; 
+        Data_out_debug      : out std_logic_vector(31 downto 0);
+        Busy_debug          : in  std_logic;
         
         --Dynamic Insertion of Applications
-        ack_app             : out std_logic;
-        req_app             : in  std_logic_vector(31 downto 0);
+        Ack_app             : out std_logic;
+        Req_app             : in  std_logic_vector(31 downto 0);
 
         -- External Memory
-        address             : out std_logic_vector(29 downto 0);
-        data_read           : in  std_logic_vector(31 downto 0) 
+        Address             : out std_logic_vector(29 downto 0);
+        Data_read           : in  std_logic_vector(31 downto 0) 
     );
+
 end entity PE;
 
 architecture Injector of PE is
@@ -60,20 +62,21 @@ architecture Injector of PE is
     constant PEJSONConfig: T_JSON := jsonLoadFile(PEConfigFile);
     constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
 
-    -- COMM STRUCTURE INTERFACE CONSTANTS ("NOC", "XBR", "BUS")
+    -- COMM STRUCTURE INTERFACE CONSTANTS ("NOC", "XBR" or "P2P", "BUS")
     constant CommStructure: string(1 to 3) := jsonGetString(PEJSONConfig, "CommStructure");
 
     -- INJECTOR CONSTANTS ("FXD", "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(PEJSONConfig, "InjectorType");
+    constant InjectorClockPeriod: integer := integer'value(jsonGetString(PEJSONConfig, "InjectorClockPeriod"));
+    signal InjectorClock: std_logic := '0';
 
     -- INPUT BUFFER (DATA FROM STRUCTURE)
-    constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
-    signal InClock: std_logic;
-    signal InDataIn: DataWidth_t; -- Tipo definido em PE_PKG.vhd
+    constant InBufferSize: integer := integer'value(jsonGetString(PEJSONConfig, "InBufferSize"));
+    signal InDataIn: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal InDataInAV: std_logic;
     signal InWriteRequest: std_logic;
     signal InWriteACK: std_logic;
-    signal InDataOut: DataWidth_t; -- Tipo definido em PE_PKG.vhd
+    signal InDataOut: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal InDataOutAV: std_logic;
     signal InReadRequest: std_logic;
     signal InBufferEmpty: std_logic;
@@ -81,25 +84,24 @@ architecture Injector of PE is
     signal InBufferAvailable: std_logic;
 
     -- OUTPUT BUFFER (DATA TO STRUCTURE)
-    constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
-    signal OutClock: std_logic;
-    signal OutDataIn: DataWidth_t; -- Tipo definido em PE_PKG.vhd
+    constant OutBufferSize: integer := integer'value(jsonGetString(PEJSONConfig, "OutBufferSize"));
+    signal OutDataIn: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal OutDataInAV: std_logic;
     signal OutWriteRequest: std_logic;
     signal OutWriteACK: std_logic;
-    signal OutDataOut: DataWidth_t; -- Tipo definido em PE_PKG.vhd
+    signal OutDataOut: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal OutDataOutAV: std_logic;
     signal OutReadRequest: std_logic;
     signal OutBufferEmpty: std_logic;
     signal OutBufferFull: std_logic;
     signal OutBufferAvailable: std_logic;
 
-begin
+begin 
 
     InBuffer: entity work.BufferCircular
         generic map(
             bufferSize => InBufferSize,
-            dataWidth  => DataWidth -- Constante definida em PE_PKG.vhd
+            dataWidth  => DataWidth -- Constant defined in PE_PKG.vhd
         )
         port map (
 
@@ -125,17 +127,15 @@ begin
             
         );
 
-    OutClock <= InClock;
-
     OutBuffer: entity work.BufferCircular
         generic map(
             bufferSize => OutBufferSize,
-            dataWidth  => DataWidth -- Constante definida em PE_PKG.vhd
+            dataWidth  => DataWidth -- Constant defined in PE_PKG.vhd
         )
         port map (
 
             -- Basic
-            clock => OutClock,
+            clock => InjectorClock,
             reset => reset,
 
             -- Input Interface
@@ -176,9 +176,11 @@ begin
     end block BufferNOCInterface;
 
 
-    BufferCrossbarInterface : block (CommStructure = "XBR") is
+    BufferCrossbarInterface : block (CommStructure = "XBR" or CommStructure = "P2P") is
         
     begin
+
+        -- TODO: implement crossbar interface
     
     end block BufferCrossbarInterface;
 
@@ -186,8 +188,20 @@ begin
     BufferBusInterface : block (CommStructure = "BUS") is
         
     begin
+
+        -- TODO: implement bus interface
     
     end block BufferBusInterface;
+
+
+    InjectorClockGenerator: process
+
+    begin
+
+        wait for InjectorClockPeriod/2;
+        InjectorClock <= not InjectorClock;
+
+    end process;
 
 
     Injector: entity work.Injector
@@ -198,19 +212,19 @@ begin
         port map(
             
             -- Basic
-            clock => clock_rx,
-            reset => reset,
+            Clock => InjectorClock,
+            Reset => Reset,
 
             -- Input Interface
-            dataIn => InDataOut,
-            dataInAV => InDataOutAV,
-            inputBufferReadRequest => InReadRequest,
+            DataIn => InDataOut,
+            DataInAV => InDataOutAV,
+            InputBufferReadRequest => InReadRequest,
 
             -- Output Interface
-            dataOut => OutDataIn,
-            dataOutAV => OutDataInAV,
-            outputBufferWriteRequest => OutWriteRequest,
-            outputBufferWriteACK => outWriteACK
+            DataOut => OutDataIn,
+            DataOutAV => OutDataInAV,
+            OutputBufferWriteRequest => OutWriteRequest,
+            OutputBufferWriteACK => OutWriteACK
 
         );
 
