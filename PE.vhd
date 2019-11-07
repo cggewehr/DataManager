@@ -60,14 +60,14 @@ architecture Injector of PE is
 
     -- JSON config files
     constant PEJSONConfig: T_JSON := jsonLoadFile(PEConfigFile);
-    constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
+    --constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
 
     -- COMM STRUCTURE INTERFACE CONSTANTS ("NOC", "XBR" or "P2P", "BUS")
     constant CommStructure: string(1 to 3) := jsonGetString(PEJSONConfig, "CommStructure");
 
     -- INJECTOR CONSTANTS ("FXD", "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(PEJSONConfig, "InjectorType");
-    constant InjectorClockPeriod: integer := integer'value(jsonGetString(PEJSONConfig, "InjectorClockPeriod"));
+    constant InjectorClockPeriod: integer := integer'value(jsonGetString(PEJSONConfig, "InjectorClockPeriod")); -- in ns
     signal InjectorClock: std_logic := '0';
 
     -- INPUT BUFFER (DATA FROM STRUCTURE)
@@ -198,7 +198,7 @@ begin
 
     begin
 
-        wait for InjectorClockPeriod/2;
+        wait for InjectorClockPeriod/2 ns;
         InjectorClock <= not InjectorClock;
 
     end process;
