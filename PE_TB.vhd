@@ -114,10 +114,12 @@ begin
     -- Clock process definitions
     clockProcess: process
     begin
+
 		    clock <= '0';
 		    wait for clock_period/2;
 		    clock <= '1';
 		    wait for clock_period/2;
+        
     end process;
  
     -- Stimulus process

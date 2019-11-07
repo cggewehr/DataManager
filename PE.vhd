@@ -189,7 +189,7 @@ begin
 
     begin
 
-        wait for time'val(InjectorClockPeriod / 2) ;
+        wait for (InjectorClockPeriod / 2) * 1 ns;
         InjectorClock <= not InjectorClock;
 
     end process;
