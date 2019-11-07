@@ -11,24 +11,24 @@ entity CircularBuffer is
     port (
 
         -- Basic
-        clock : in std_logic;
-        reset : in std_logic;
+        Clock : in std_logic;
+        Reset : in std_logic;
 
         -- Input Interface
-        dataIn : in std_logic_vector(dataWidth - 1 downto 0);
-        dataInAV: in std_logic;
-        writeRequest : in std_logic;
-        writeACK : out std_logic;
+        DataIn : in std_logic_vector(dataWidth - 1 downto 0);
+        DataInAV: in std_logic;
+        WriteRequest : in std_logic;
+        WriteACK : out std_logic;
 
         -- Output interface
-        dataOut : out std_logic_vector(dataWidth - 1 downto 0);
-        dataOutAV : out std_logic;
-        readRequest: in std_logic;
+        DataOut : out std_logic_vector(dataWidth - 1 downto 0);
+        DataOutAV : out std_logic;
+        ReadRequest: in std_logic;
 
         -- Flags
-        bufferEmptyFlag : out std_logic;
-        bufferFullFlag : out std_logic;
-        bufferAvailableFlag : out std_logic
+        BufferEmptyFlag : out std_logic;
+        BufferFullFlag : out std_logic;
+        BufferAvailableFlag : out std_logic
 
     );
 
@@ -75,17 +75,17 @@ begin
     bufferFullFlag <= '1' when dataCount = BufferSize else '0';
     bufferAvailableFlag <= '1' when dataCount < bufferSize else '0';
 
-    WriteProcess: process(clock, reset)
+    WriteProcess: process(Clock, Reset)
 
     begin
 
-        if reset = '1' then
+        if Reset = '1' then
 
             writePointer <= 0;
             writeACK <= '0';
             dataCount <= 0;
 
-        elsif rising_edge(clock) then
+        elsif rising_edge(Clock) then
 
             writeACK <= '0';
 

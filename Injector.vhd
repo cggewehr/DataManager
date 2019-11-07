@@ -246,16 +246,16 @@ begin
 
                         -- Outbound data bus receives the flit to be sent
                         dataOut <= flitTemp;
+                        dataOutAV <= '1';
+                        outputBufferWriteRequest <= '1';
 
                         -- Increments flits sent counter
                         injectionCounter := injectionCounter + 1;
-
+                        
                         -- Decides whether to send another flit or idle to maintain injection rate
                         if injectionCounter = TargetMessageSizeArray(currentTargetPE) then
 
                             -- Message has been sent, will idle next state
-                            dataOutAV <= '1';
-                            outputBufferWriteRequest <= '1';
                             injectionCounter := 0;
                             amountOfMessagesSent := amountOfMessagesSent + 1;
                             burstCounter := burstCounter + 1;
@@ -283,9 +283,7 @@ begin
 
                         else
 
-                            -- Signals dataOut is valid. Will send another flit next sate
-                            dataOutAV <= '1';
-                            outputBufferWriteRequest <= '1';
+                            -- Message has not ended, wil send another flit next state
                             nextState := Ssending;
 
                         end if;
@@ -373,6 +371,7 @@ begin
                     amountOfMessagesSent := (others=>'0');
 
                     currentTargetPE := 0;
+                    flitCounter := 0;
                     burstCounter := 0;
 
                     -- Sets seed for RNG
@@ -406,7 +405,7 @@ begin
                     if processingCounter = AverageProcessingTimeInClockPulses - 1 then
 
                         -- Done idling, will begin to send message next cycle
-                        injectionCounter := 0;
+                        flitCounter := 0;
                         nextState := Ssending;
 
                     else
@@ -424,23 +423,23 @@ begin
                     if outputBufferSlotAvailable = '1' then
 
                         -- Decides what flit to send (Header or Payload)
-                        if injectionCounter < HeaderSize then
+                        if flitCounter < HeaderSize then
 
                             -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
-                            if injectionCounter = 0 then
+                            if flitCounter = 0 then
 
                                 firstFlitOutTimestamp := ClockCounter;
 
                             end if;
 
                             -- A Header flit will be sent
-                            flitTemp := HeaderFlits(currentTargetPE)(injectionCounter);
+                            flitTemp := HeaderFlits(currentTargetPE)(flitCounter);
 
                         -- Not a header flit
                         else
 
                             -- A Payload flit will be sent
-                            flitTemp := PayloadFlits(currentTargetPE)(injectionCounter - HeaderSize);
+                            flitTemp := PayloadFlits(currentTargetPE)(flitCounter - HeaderSize);
 
                         end if;
 
@@ -457,25 +456,27 @@ begin
 
                         -- Outbound data bus receives the flit to be sent
                         dataOut <= flitTemp;
+                        dataOutAV <= '1';
+                        outputBufferWriteRequest <= '1';
 
                         -- Increments flits sent counter
-                        injectionCounter := injectionCounter + 1;
+                        flitCounter := flitCounter + 1;
 
                         -- Decides whether to send another flit or idle to maintain injection rate
-                        if injectionCounter = TargetMessageSizeArray(currentTargetPE) then
+                        if flitCounter = TargetMessageSizeArray(currentTargetPE) then
 
-                            -- Message has been sent, will idle next state
-                            dataOutAV <= '1';
-                            outputBufferWriteRequest <= '1';
-                            injectionCounter := 0;
+                            -- Message has been sent, will send next message in burst
+                            flitCounter := 0;
                             amountOfMessagesSent := amountOfMessagesSent + 1;
                             burstCounter := burstCounter + 1;
-                            nextState := Swaiting;
+                            --nextState := Ssending;
 
                             -- Determines if burst has ended
                             if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
 
-                                burstCounter = 0;
+                                -- Bust has ended, will wait for a new message to send another burst
+                                burstCounter := 0;
+                                nextState := Swaiting;
 
                                 -- Determines next target PE
                                 if FlowType = "RND" then
@@ -490,13 +491,16 @@ begin
 
                                 end if;
 
+                            else
+
+                                -- Burst has not ended, will begin to send another message next state
+                                nextState := Ssending;
+
                             end if;
 
                         else
 
-                            -- Signals dataOut is valid. Will send another flit next sate
-                            dataOutAV <= '1';
-                            outputBufferWriteRequest <= '1';
+                            -- Message has not ended, wil send another flit next state
                             nextState := Ssending;
 
                         end if;
@@ -504,6 +508,9 @@ begin
                     else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
 
                         -- TODO: Assert message signaling unavailable buffer
+
+                        -- Buffer not available, will try again next state
+                        nextState := Ssending;
 
                     end if;
 
@@ -522,10 +529,10 @@ begin
     begin
 
         ReceiverProcess: process(Clock, Reset)
-            variable flitCounter : integer := 0;
-            variable messageCounter : integer := 0;
-            variable currentMessageSize : integer := 0;
-            variable lastMessageTimestamp : DataWidth_t := (others => '0');
+            variable flitCounter: integer := 0;
+            variable messageCounter: integer := 0;
+            variable currentMessageSize: integer := 0;
+            variable lastMessageTimestamp: DataWidth_t := (others => '0');
         begin
 
             -- Read request signal will be set to '1' unless Reset = '1'
@@ -556,7 +563,7 @@ begin
 
                     end if;
 
-                    -- Increments counter if less than current message size or SIZE flit has not yet been received
+                    -- Increments counter if its less than current message size or SIZE flit has not yet been received
                     if (flitCounter < currentMessageSize) or (flitCounter = 0) then
 
                         flitCounter := flitCounter + 1;
