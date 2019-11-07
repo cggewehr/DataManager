@@ -56,7 +56,7 @@ end entity Injector;
 architecture RTL of Injector is
 
 	-- JSON configuration file
-    constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
+    constant InjectorJSONConfig: T_JSON := jsonLoad(InjectorConfigFile);
 
     -- Injector type ("FXD" or "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
@@ -109,30 +109,30 @@ architecture RTL of Injector is
     signal Semaphore : integer range 0 to (2**32) - 1 := 0;
 
     -- Simple increment and wrap around
-    procedure incr(signal value: inout integer ; maxValue: in integer ; minValue: in integer) is
+    function incr(value: integer ; maxValue: in integer ; minValue: in integer) return integer is
 
     begin
 
         if value = maxValue then
-            value <= minValue;
+            return minValue;
         else
-            value <= value + 1;
+            return value + 1;
         end if;
 
-    end procedure;
+    end function;
 
     -- Simple decrement and wrap around
-    procedure decr(signal value: inout integer ; maxValue: in integer ; minValue: in integer) is
+    function decr(value: integer ; maxValue: in integer ; minValue: in integer) return integer is
 
     begin
 
         if value = minValue then
-            value <= maxValue;
+            return maxValue;
         else
-            value <= value - 1;
+            return value - 1;
         end if;
 
-    end procedure;
+    end function;
 
 
 begin
@@ -147,7 +147,7 @@ begin
 
         elsif rising_edge(Clock) then
 
-            incr(ClockCounter, ((2**32) - 1) , 0);
+            ClockCounter <= incr(ClockCounter, ((2**32) - 1) , 0);
 
         end if;
 
@@ -202,7 +202,7 @@ begin
                     burstCounter := 0;
 
                     -- Sets seed for RNG
-                    SRAND(RNGSeed);
+                    ieee.math_real.SRAND(RNGSeed);
 
                     nextState := Ssending;
 
@@ -270,12 +270,12 @@ begin
                                 if FlowType = "RND" then
 
                                     -- Uses RAND function from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE := RAND() % AmountOfTargetPEs;
+                                    currentTargetPE := ieee.math_real.RAND(currentTargetPE) % AmountOfTargetPEs;
 
                                 elsif FlowType = "DTM" then
 
                                     -- Next message will be sent to next sequential target as defined on TargetPEsArray
-                                    incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+                                    currentTargetPE := incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
 
                                 end if;
 
@@ -375,7 +375,7 @@ begin
                     burstCounter := 0;
 
                     -- Sets seed for RNG
-                    SRAND(RNGSeed);
+                    ieee.math_real.SRAND(RNGSeed);
 
                     nextState := Swaiting;
 
@@ -386,7 +386,7 @@ begin
                     if Semaphore > 0 then
 
                         -- A new message was received, goes into processing state and decreases Semaphore
-                        decr(Semaphore, (2**32) - 1, 0);
+                        Semaphore <= decr(Semaphore, (2**32) - 1, 0);
                         processingCounter := 0;
                         nextState := Sprocessing;
 
@@ -482,12 +482,12 @@ begin
                                 if FlowType = "RND" then
 
                                     -- Uses RAND function from ieee.math_real. Gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE <= RAND() % AmountOfTargetPEs;
+                                    currentTargetPE <= ieee.math_real.RAND() % AmountOfTargetPEs;
 
                                 elsif FlowType = "DTM" then
 
                                     -- Next message will be sent to next sequential target as defined on TargetPEsArray
-                                    incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+                                    currenttargetPE := incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
 
                                 end if;
 
@@ -577,8 +577,8 @@ begin
 
                         -- Signals a message has been received to DPD injector and updates counters
                         flitCounter := 0;
-                        incr(messageCounter, (2**32) - 1, 0);
-                        incr(Semaphore, (2**32) - 1, 0);
+                        messageCounter <= incr(messageCounter, (2**32) - 1, 0);
+                        Semaphore <= incr(Semaphore, (2**32) - 1, 0);
 
                     end if;
 

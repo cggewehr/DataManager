@@ -15,6 +15,8 @@
 
 library ieee;
     use ieee.std_logic_1164.all;
+    use ieee.std_logic_unsigned.all;
+    use ieee.numeric_std.all;
     
 library work;
     use work.PE_PKG.all;
@@ -60,7 +62,7 @@ end entity PE;
 architecture Injector of PE is
 
     -- JSON config files
-    constant PEJSONConfig: T_JSON := jsonLoadFile(PEConfigFile);
+    constant PEJSONConfig: T_JSON := jsonLoad(PEConfigFile);
     --constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
 
     -- COMM STRUCTURE INTERFACE CONSTANTS ("NOC", "XBR" or "P2P", "BUS")
@@ -80,9 +82,9 @@ architecture Injector of PE is
     signal InDataOut: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal InDataOutAV: std_logic;
     signal InReadRequest: std_logic;
-    signal InBufferEmpty: std_logic;
-    signal InBufferFull: std_logic;
-    signal InBufferAvailable: std_logic;
+    signal InBufferEmptyFlag: std_logic;
+    signal InBufferFullFlag: std_logic;
+    signal InBufferAvailableFlag: std_logic;
 
     -- OUTPUT BUFFER (DATA TO STRUCTURE)
     constant OutBufferSize: integer := integer'value(jsonGetString(PEJSONConfig, "OutBufferSize"));
@@ -93,13 +95,13 @@ architecture Injector of PE is
     signal OutDataOut: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal OutDataOutAV: std_logic;
     signal OutReadRequest: std_logic;
-    signal OutBufferEmpty: std_logic;
-    signal OutBufferFull: std_logic;
-    signal OutBufferAvailable: std_logic;
+    signal OutBufferEmptyFlag: std_logic;
+    signal OutBufferFullFlag: std_logic;
+    signal OutBufferAvailableFlag: std_logic;
 
 begin 
 
-    InBuffer: entity work.BufferCircular
+    InBuffer: entity work.CircularBuffer
         generic map(
             bufferSize => InBufferSize,
             dataWidth  => DataWidth -- Constant defined in PE_PKG.vhd
@@ -107,7 +109,7 @@ begin
         port map (
 
             -- Basic
-            clock => InClock,
+            clock => Clock_rx, -- Clock_rx is defined by interfacing entity
             reset => reset,
 
             -- Input Interface
@@ -128,7 +130,7 @@ begin
             
         );
 
-    OutBuffer: entity work.BufferCircular
+    OutBuffer: entity work.CircularBuffer
         generic map(
             bufferSize => OutBufferSize,
             dataWidth  => DataWidth -- Constant defined in PE_PKG.vhd
@@ -163,16 +165,15 @@ begin
     begin
     
         -- NoC Interface
-        clock_tx <= OutClock;
+        clock_tx <= InjectorClock; -- injectorClock = Output buffer clock
         data_out <= OutDataOut;
         OutReadRequest <= credit_i;
         tx <= OutDataOutAV;
 
-        InClock <= clock_rx;
         InDataInAV <= rx;
         InWriteRequest <= rx;
         InDataIn <= data_in;
-        credit_o <= InBufferAvailable;             
+        credit_o <= InBufferAvailableFlag;             
 
     end block BufferNOCInterface;
 
@@ -199,7 +200,7 @@ begin
 
     begin
 
-        wait for InjectorClockPeriod/2 ns;
+        wait for time'val(InjectorClockPeriod / 2) ;
         InjectorClock <= not InjectorClock;
 
     end process;
@@ -225,7 +226,8 @@ begin
             DataOut => OutDataIn,
             DataOutAV => OutDataInAV,
             OutputBufferWriteRequest => OutWriteRequest,
-            OutputBufferWriteACK => OutWriteACK
+            OutputBufferWriteACK => OutWriteACK,
+            OutputBufferSlotAvailable => OutBufferAvailableFlag
 
         );
 
