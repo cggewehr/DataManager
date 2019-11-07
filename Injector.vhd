@@ -85,14 +85,13 @@ architecture RTL of Injector is
     -- Message parameters
     constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
     constant SourcePayloadSizeArray : SourcetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
+    constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
     constant HeaderSize : integer := integer'value(jsonGetString(InjectorJSONConfig, "HeaderSize"));
     constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray);
 
     constant TargetMessageSizeArray : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
     constant SourceMessageSizeArray : SourceMessageSize_t := FillSourceMessageSizeArray(SourcePayloadSizeArray, HeaderSize);
-
-    constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
     constant PayloadFlits : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray, TargetPEsArray);
 
