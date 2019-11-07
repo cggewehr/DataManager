@@ -16,9 +16,9 @@
 
 library ieee;
     use ieee.std_logic_1164.all;
+    use ieee.math_real.all; -- for random number generation
     use ieee.std_logic_unsigned.all;
     use ieee.numeric_std.all;
-    use ieee.math_real.all; -- for random number generation
 
 library work;
     use work.PE_PKG.all;
@@ -202,7 +202,7 @@ begin
                     burstCounter := 0;
 
                     -- Sets seed for RNG
-                    ieee.math_real.SRAND(RNGSeed);
+                    SRAND(RNGSeed);
 
                     nextState := Ssending;
 
@@ -270,7 +270,7 @@ begin
                                 if FlowType = "RND" then
 
                                     -- Uses RAND function from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE := ieee.math_real.RAND(currentTargetPE) % AmountOfTargetPEs;
+                                    currentTargetPE := RAND mod AmountOfTargetPEs;
 
                                 elsif FlowType = "DTM" then
 
@@ -375,7 +375,7 @@ begin
                     burstCounter := 0;
 
                     -- Sets seed for RNG
-                    ieee.math_real.SRAND(RNGSeed);
+                    SRAND(RNGSeed);
 
                     nextState := Swaiting;
 
@@ -482,8 +482,8 @@ begin
                                 if FlowType = "RND" then
 
                                     -- Uses RAND function from ieee.math_real. Gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE <= ieee.math_real.RAND() % AmountOfTargetPEs;
-
+                                    currentTargetPE := RAND mod AmountOfTargetPEs;
+                                    
                                 elsif FlowType = "DTM" then
 
                                     -- Next message will be sent to next sequential target as defined on TargetPEsArray

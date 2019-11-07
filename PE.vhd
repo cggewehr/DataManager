@@ -43,18 +43,7 @@ entity PE is
         Clock_rx            : in  std_logic;        
         Rx                  : in  std_logic;
         Data_in             : in  DataWidth_t;
-        Credit_o            : out std_logic;    -- Debug MC
-        Write_enable_debug  : out std_logic; 
-        Data_out_debug      : out std_logic_vector(31 downto 0);
-        Busy_debug          : in  std_logic;
-        
-        --Dynamic Insertion of Applications
-        Ack_app             : out std_logic;
-        Req_app             : in  std_logic_vector(31 downto 0);
-
-        -- External Memory
-        Address             : out std_logic_vector(29 downto 0);
-        Data_read           : in  std_logic_vector(31 downto 0) 
+        Credit_o            : out std_logic    -- Debug MC
     );
 
 end entity PE;
