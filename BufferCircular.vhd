@@ -71,10 +71,13 @@ architecture RTL of CircularBuffer is
 
 begin
 
+    -- Asynchrounously sets flags
     bufferEmptyFlag <= '1' when dataCount = 0 else '0';
     bufferFullFlag <= '1' when dataCount = BufferSize else '0';
     bufferAvailableFlag <= '1' when dataCount < bufferSize else '0';
 
+
+    -- Handles write requests
     WriteProcess: process(Clock, Reset)
 
     begin
@@ -87,9 +90,11 @@ begin
 
         elsif rising_edge(Clock) then
 
+            -- writeACK is defaulted to '0'
             writeACK <= '0';
 
-            if writeRequest = '1' and dataInAV = '1' then
+            -- Checks for a write request. If there is valid data available and free space on the buffer, write it and send ACK to producer entity
+            if writeRequest = '1' and dataInAV = '1' and dataCount < bufferSize then
 
                 bufferArray(writePointer) <= dataIn;
                 writeACK <= '1';
@@ -102,20 +107,24 @@ begin
 
     end process;
 
-    ReadProcess: process(clock, reset)
+
+    -- Handles read requests
+    ReadProcess: process(Clock, Reset)
 
     begin
 
-        if reset = '1' then
+        if Reset = '1' then
 
             readPointer <= 0;
             dataOutAV <= '0';
 
-        elsif rising_edge(clock) then
+        elsif rising_edge(Clock) then
 
+            -- DataAV is defaulted do '0'
             dataOutAV <= '0';
 
-            if readRequest = '1' then
+            -- Checks for a read request. If there is data on the buffer, pass in on to consumer entity
+            if readRequest = '1' and dataCount > 0 then
 
                 dataOut <= bufferArray(readPointer);
                 dataOutAV <= '1';
@@ -127,6 +136,7 @@ begin
         end if;
 
     end process;
+
 
 end architecture RTL;
         

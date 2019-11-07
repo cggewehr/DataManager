@@ -159,7 +159,7 @@ begin
 
     begin
 
-        Transmitter: process(Clock, Reset)
+        FixedRateInjetorProcess: process(Clock, Reset)
 
             variable injectionCounter : integer := 0;
             variable injectionPeriod : integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
@@ -334,7 +334,7 @@ begin
         
     begin
 
-        Transmitter: process(Clock, Reset)
+        DependantInjectorProcess: process(Clock, Reset)
 
             variable flitCounter : integer := 0;
             variable processingCounter : integer := 0;
@@ -507,10 +507,10 @@ begin
 
                     else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
 
-                        -- TODO: Assert message signaling unavailable buffer
-
                         -- Buffer not available, will try again next state
                         nextState := Ssending;
+
+                        -- TODO: Assert message signaling unavailable buffer
 
                     end if;
 
@@ -525,14 +525,17 @@ begin
 
     -- Assumes header = [ADDR, SIZE]
     Receiver : block is
+
+        signal messageCounter: integer range 0 to (2**32) - 1 := 0;
         
     begin
 
         ReceiverProcess: process(Clock, Reset)
+
             variable flitCounter: integer := 0;
-            variable messageCounter: integer := 0;
             variable currentMessageSize: integer := 0;
             variable lastMessageTimestamp: DataWidth_t := (others => '0');
+
         begin
 
             -- Read request signal will be set to '1' unless Reset = '1'
@@ -547,6 +550,7 @@ begin
 
             elsif rising_edge(Clock) then
                 
+                -- Checks for a new flit on 
                 if dataInAV = '1' then
 
                     -- Checks for an ADDR flit (Assumes header = [ADDR, SIZE])
@@ -573,7 +577,7 @@ begin
 
                         -- Signals a message has been received to DPD injector and updates counters
                         flitCounter := 0;
-                        messageCounter := messageCounter + 1;
+                        incr(messageCounter, (2**32) - 1, 0);
                         incr(Semaphore, (2**32) - 1, 0);
 
                     end if;
