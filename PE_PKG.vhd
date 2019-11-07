@@ -23,7 +23,7 @@ package PE_PKG is
     type TargetPEsArray_t is array(integer range <>) of integer;
     type TargetPayloadSizeArray_t is array(integer range <>) of integer;
     type TargetMessageSizeArray_t is array(integer range <>) of integer;
-    type AmountOfMessagesInBurst_t is array(integer range <>) of integer;
+    type AmountOfMessagesInBurstArray_t is array(integer range <>) of integer;
     type HeaderFlits_t is array(integer range <>, integer range <>) of DataWidth_t;
     type PayloadFlits_t is array (integer range <>, integer range <>) of DataWidth_t;
 
@@ -33,7 +33,7 @@ package PE_PKG is
 	function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t;
     function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPayloadSizeArray_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer) return TargetMessageSizeArray_t;
-    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurst_t;
+    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurstArray_t;
     function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray : TargetPayloadSizeArray_t) return integer;

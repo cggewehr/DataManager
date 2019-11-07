@@ -14,10 +14,11 @@
 ---------------------------------------------------------------------------------------------------------
 
 library ieee;
-use ieee.std_logic_1164.all;
-use work.BufferCircular.all;
-use work.PE_PKG.all;
-use work.JSON.all;
+    use ieee.std_logic_1164.all;
+    
+library work;
+    use work.PE_PKG.all;
+    use work.JSON.all;
 
 entity PE is 
 

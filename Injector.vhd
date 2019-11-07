@@ -16,7 +16,7 @@
 
 library ieee;
     use ieee.std_logic_1164.all;
-    --use ieee.std_logic_unsigned.all;
+    use ieee.std_logic_unsigned.all;
     use ieee.numeric_std.all;
     use ieee.math_real.all; -- for random number generation
 
@@ -80,18 +80,18 @@ architecture RTL of Injector is
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
     constant AmountOfTargetPEs : integer := integer'value(jsonGetString(InjectorJSONConfig, "AmountOfTargetPEs"));
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArrayArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
 
     -- Message parameters
     constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant SourcePayloadSizeArray : SourcetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
+    constant SourcePayloadSizeArray : SourcePayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
     constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
     constant HeaderSize : integer := integer'value(jsonGetString(InjectorJSONConfig, "HeaderSize"));
     constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray);
 
-    constant TargetMessageSizeArray : TargetMessageSize_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
-    constant SourceMessageSizeArray : SourceMessageSize_t := FillSourceMessageSizeArray(SourcePayloadSizeArray, HeaderSize);
+    constant TargetMessageSizeArray : TargetMessageSizeArray_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
+    --constant SourceMessageSizeArray : SourceMessageSizeArray_t := FillSourceMessageSizeArray(SourcePayloadSizeArray, HeaderSize);
 
     constant PayloadFlits : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray, TargetPEsArray);
 
@@ -218,18 +218,18 @@ begin
                             -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
                             if injectionCounter = 0 then
 
-                                firstFlitOutTimestamp := ClockCounter;
+                                firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
 
                             end if;
 
                             -- A Header flit will be sent
-                            flitTemp := HeaderFlits(currentTargetPE)(injectionCounter);
+                            flitTemp := HeaderFlits(currentTargetPE, injectionCounter);
 
                         -- Not a header flit
                         else
 
                             -- A Payload flit will be sent
-                            flitTemp := PayloadFlits(currentTargetPE)(injectionCounter - HeaderSize);
+                            flitTemp := PayloadFlits(currentTargetPE, injectionCounter - HeaderSize);
 
                         end if;
 
@@ -270,7 +270,7 @@ begin
                                 if FlowType = "RND" then
 
                                     -- Uses RAND function from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE <= RAND() % AmountOfTargetPEs;
+                                    currentTargetPE := RAND() % AmountOfTargetPEs;
 
                                 elsif FlowType = "DTM" then
 
@@ -428,18 +428,18 @@ begin
                             -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
                             if flitCounter = 0 then
 
-                                firstFlitOutTimestamp := ClockCounter;
+                                firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
 
                             end if;
 
                             -- A Header flit will be sent
-                            flitTemp := HeaderFlits(currentTargetPE)(flitCounter);
+                            flitTemp := HeaderFlits(currentTargetPE, flitCounter);
 
                         -- Not a header flit
                         else
 
                             -- A Payload flit will be sent
-                            flitTemp := PayloadFlits(currentTargetPE)(flitCounter - HeaderSize);
+                            flitTemp := PayloadFlits(currentTargetPE, flitCounter - HeaderSize);
 
                         end if;
 
@@ -546,7 +546,7 @@ begin
                 -- Set default values and disables buffer read request
                 inputBufferReadRequest <= '0';
                 flitCounter := 0;
-                messageCounter := 0;
+                messageCounter <= 0;
 
             elsif rising_edge(Clock) then
                 
@@ -556,14 +556,14 @@ begin
                     -- Checks for an ADDR flit (Assumes header = [ADDR, SIZE])
                     if flitCounter = 0 then
 
-                        lastMessageTimestamp := ClkCounter;
+                        lastMessageTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
 
                     end if;
 
                     -- Checks for a SIZE flit (Assumes header = [ADDR, SIZE])
                     if flitCounter = 1 then
 
-                        currentMessageSize := dataIn;
+                        currentMessageSize := to_integer(unsigned(dataIn));
 
                     end if;
 
