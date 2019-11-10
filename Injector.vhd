@@ -99,8 +99,10 @@ architecture RTL of Injector is
     constant timestampFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "timestampFlag"));
     constant amountOfMessagesSentFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "amountOfMessagesSentFlag"));
 
-    -- RNG Seed
-    constant RNGSeed : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed"));
+    -- RNG
+    constant RNGSeed1 : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed1"));
+    constant RNGSeed2 : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed2"));
+    signal RandomNumber : integer;
 
     -- Clock Counter
     signal ClockCounter : integer range 0 to (2**32) - 1 := 0;
@@ -201,8 +203,8 @@ begin
                     currentTargetPE := 0;
                     burstCounter := 0;
 
-                    -- Sets seed for RNG
-                    SRAND(RNGSeed);
+                    -- Generates a new random number
+                    Uniform(RNGSeed1, RNGSeed2, RandomNumber); -- Procedure defined in ieee.math_real
 
                     nextState := Ssending;
 
@@ -269,8 +271,11 @@ begin
                                 -- Determines next target PE
                                 if FlowType = "RND" then
 
-                                    -- Uses RAND function from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE := RAND mod AmountOfTargetPEs;
+                                    -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
+                                    currentTargetPE := integer(trunc(RandomNumber * (AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
+
+                                    -- Generates a new random number
+                                    Uniform(RNGSeed1, RNGSeed2, RandomNumber);
 
                                 elsif FlowType = "DTM" then
 
@@ -481,8 +486,11 @@ begin
                                 -- Determines next target PE
                                 if FlowType = "RND" then
 
-                                    -- Uses RAND function from ieee.math_real. Gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE := RAND mod AmountOfTargetPEs;
+                                    -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
+                                    currentTargetPE := integer(trunc(RandomNumber * (AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
+
+                                    -- Generates a new random number
+                                    Uniform(RNGSeed1, RNGSeed2, RandomNumber);
                                     
                                 elsif FlowType = "DTM" then
 
