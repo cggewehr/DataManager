@@ -16,7 +16,7 @@ package PE_PKG is
     constant DataWidth: integer := TAM_FLIT;
     subtype DataWidth_t is std_logic_vector(DataWidth - 1 downto 0);
 
-    -- Typedefs for injector parameters
+    -- Typedefs for injector parameters types
     type SourcePEsArray_t is array(natural range <>) of integer;
     type SourcePayloadSizeArray_t is array(integer range <>) of integer;
     type SourceMessageSizeArray_t is array(integer range <>) of integer;
@@ -28,15 +28,20 @@ package PE_PKG is
     type PayloadFlits_t is array (integer range <>, integer range <>) of DataWidth_t;
 
     -- Function declarations for organizing data from JSON config file
-    function FillSourcePEsArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePEsArray_t;
-    function FillSourcePayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfSourcePEs : integer) return SourcePayloadSizeArray_t;
-	function FillTargetPEsArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPEsArray_t;
-    function FillTargetPayloadSizeArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return TargetPayloadSizeArray_t;
-    function FillTargetMessageSizeArray(TargetPayloadSizeArray : TargetPayloadSizeArray_t ; HeaderSize : integer) return TargetMessageSizeArray_t;
-    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurstArray_t;
-    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return HeaderFlits_t;
-    function BuildPayloads(InjectorJSONConfig : T_JSON ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return PayloadFlits_t;
-    function FindMaxPayloadSize(TargetPayloadSizeArray : TargetPayloadSizeArray_t) return integer;
+    function FillSourcePEsArray(InjectorJSONConfig: T_JSON ; AmountOfSourcePEs: integer) return SourcePEsArray_t;
+    function FillSourcePayloadSizeArray(InjectorJSONConfig: T_JSON ; AmountOfSourcePEs: integer) return SourcePayloadSizeArray_t;
+	function FillTargetPEsArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return TargetPEsArray_t;
+    function FillTargetPayloadSizeArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return TargetPayloadSizeArray_t;
+    function FillTargetMessageSizeArray(TargetPayloadSizeArray: TargetPayloadSizeArray_t ; HeaderSize: integer) return TargetMessageSizeArray_t;
+    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return AmountOfMessagesInBurstArray_t;
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t;
+    function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return PayloadFlits_t;
+    function FindMaxPayloadSize(TargetPayloadSizeArray: TargetPayloadSizeArray_t) return integer;
+
+    -- Misc functions
+    function Uniform(Seed1: positive ; Seed2: positive) return real;
+    function incr(value: integer ; maxValue: in integer ; minValue: in integer) return integer;
+    function decr(value: integer ; maxValue: in integer ; minValue: in integer) return integer;
 
 end package PE_PKG;
 
@@ -274,6 +279,70 @@ package body PE_PKG is
         return MaxPayloadSize;
 
     end function FindMaxPayloadSize;
+
+
+    -- Uniform function, stolen from GHDL ieee.math_real (https://github.com/ghdl/ghdl/blob/master/libraries/openieee/math_real-body.vhdl)
+    -- Returns a pseudo-random value between 0 and 1
+	function Uniform(Seed1: positive ; Seed2: positive) return real is
+ 	    variable z, k : Integer;
+	    variable s1, s2 : Integer;
+	begin
+
+	    k := seed1 / 53668;
+	    s1 := 40014 * (seed1 - k * 53668) - k * 12211;
+
+	    if s1 < 0 then
+	        seed1 := s1 + 2147483563;
+	    else
+	        seed1 := s1;
+	    end if;
+
+	    k := seed2 / 52774;
+	    s2 := 40692 * (seed2 - k * 52774) - k * 3791;
+
+	    if s2 < 0 then
+	        seed2 := s2 + 2147483399;
+	    else
+	        seed2 := s2;
+	    end if;
+
+	    z := seed1 - seed2;
+
+	    if z < 1 then
+	        z := z + 2147483562;
+	    end if;
+
+	    return (real(z) * 4.656613e-10);
+
+	end function Uniform;
+
+
+    -- Simple increment and wrap around
+    function incr(value: integer ; maxValue: in integer ; minValue: in integer) return integer is
+
+    begin
+
+        if value = maxValue then
+            return minValue;
+        else
+            return value + 1;
+        end if;
+
+    end function incr;
+
+
+    -- Simple decrement and wrap around
+    function decr(value: integer ; maxValue: in integer ; minValue: in integer) return integer is
+
+    begin
+
+        if value = minValue then
+            return maxValue;
+        else
+            return value - 1;
+        end if;
+
+    end function decr;
 
 
 end package body PE_PKG;

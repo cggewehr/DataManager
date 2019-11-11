@@ -16,7 +16,7 @@
 
 library ieee;
     use ieee.std_logic_1164.all;
-    use ieee.math_real.all; -- for random number generation
+    use ieee.math_real.trunc; -- for random number generation
     use ieee.std_logic_unsigned.all;
     use ieee.numeric_std.all;
 
@@ -99,43 +99,16 @@ architecture RTL of Injector is
     constant timestampFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "timestampFlag"));
     constant amountOfMessagesSentFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "amountOfMessagesSentFlag"));
 
-    -- RNG (Used by the Uniform procedure, defined in ieee.math_real)
+    -- RNG (Used by the Uniform function)
     constant RNGSeed1 : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed1"));
     constant RNGSeed2 : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed2"));
-    signal RandomNumber : integer;
+    signal RandomNumber : real;
 
     -- Clock Counter
     signal ClockCounter : integer range 0 to (2**32) - 1 := 0;
 
     -- Semaphore for flow control if DPD injector is instantiated
     signal Semaphore : integer range 0 to (2**32) - 1 := 0;
-
-    -- Simple increment and wrap around
-    function incr(value: integer ; maxValue: in integer ; minValue: in integer) return integer is
-
-    begin
-
-        if value = maxValue then
-            return minValue;
-        else
-            return value + 1;
-        end if;
-
-    end function;
-
-    -- Simple decrement and wrap around
-    function decr(value: integer ; maxValue: in integer ; minValue: in integer) return integer is
-
-    begin
-
-        if value = minValue then
-            return maxValue;
-        else
-            return value - 1;
-        end if;
-
-    end function;
-
 
 begin
 
@@ -204,7 +177,7 @@ begin
                     burstCounter := 0;
 
                     -- Generates a new random number
-                    Uniform(RNGSeed1, RNGSeed2, RandomNumber); -- Procedure defined in ieee.math_real
+                    RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
 
                     nextState := Ssending;
 
@@ -272,10 +245,10 @@ begin
                                 if FlowType = "RND" then
 
                                     -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE := integer(trunc(RandomNumber * (AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
+                                    currentTargetPE := integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
 
                                     -- Generates a new random number
-                                    Uniform(RNGSeed1, RNGSeed2, RandomNumber);
+                                    RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
 
                                 elsif FlowType = "DTM" then
 
@@ -380,7 +353,7 @@ begin
                     burstCounter := 0;
 
                     -- Generates new (real) random number between 0 and 1
-                    Uniform(RNGSeed1, RNGSeed2, RandomNumber); -- Procedure defined in ieee.math_real
+                    RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
 
                     nextState := Swaiting;
 
@@ -487,10 +460,10 @@ begin
                                 if FlowType = "RND" then
 
                                     -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                    currentTargetPE := integer(trunc(RandomNumber * (AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
+                                    currentTargetPE := integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
 
                                     -- Generates a new random number
-                                    Uniform(RNGSeed1, RNGSeed2, RandomNumber);
+                                    RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
                                     
                                 elsif FlowType = "DTM" then
 
