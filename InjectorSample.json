@@ -56,5 +56,6 @@
   },
   "timestampFlag" : "256",
   "amountOfMessagesSentFlag": "512",
-  "RNGSeed": "34"
+  "RNGSeed1" : "32",
+  "RNGSeed2" : "22"
 }

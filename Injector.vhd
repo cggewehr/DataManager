@@ -99,7 +99,7 @@ architecture RTL of Injector is
     constant timestampFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "timestampFlag"));
     constant amountOfMessagesSentFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "amountOfMessagesSentFlag"));
 
-    -- RNG
+    -- RNG (Used by the Uniform procedure, defined in ieee.math_real)
     constant RNGSeed1 : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed1"));
     constant RNGSeed2 : integer := integer'value(jsonGetString(InjectorJSONConfig, "RNGSeed2"));
     signal RandomNumber : integer;
@@ -379,8 +379,8 @@ begin
                     flitCounter := 0;
                     burstCounter := 0;
 
-                    -- Sets seed for RNG
-                    SRAND(RNGSeed);
+                    -- Generates new (real) random number between 0 and 1
+                    Uniform(RNGSeed1, RNGSeed2, RandomNumber); -- Procedure defined in ieee.math_real
 
                     nextState := Swaiting;
 
