@@ -40,34 +40,6 @@ entity PE_TB is
 end PE_TB;
  
 architecture testbench OF PE_TB is 
- 
-    -- Component Declaration for the Unit Under Test (UUT)
- 
-    component PE
-       
-        generic(
-            -- Path to JSON file containing PE and APP parameters
-            PEConfigFile          : string;
-            InjectorConfigFile    : string
-        );
-        port(
-
-            -- Basic
-            Clock               : in  std_logic;
-            Reset               : in  std_logic;
-
-            -- NoC Interface      
-            Clock_tx            : out std_logic;
-            Tx                  : out std_logic;
-            Data_out            : out DataWidth_t;
-            Credit_i            : in  std_logic;
-            Clock_rx            : in  std_logic;        
-            Rx                  : in  std_logic;
-            Data_in             : in  DataWidth_t;
-            Credit_o            : out std_logic    -- Debug MC
-        );
-
-    end component;
 
     --Inputs
     signal Clock : std_logic := '0';
@@ -92,7 +64,7 @@ begin
     uut: entity work.PE 
         generic map(
             PEConfigFile => "~\PESample.json",
-            InjectorConfigFile => "~\InjectorSampleSample.json"
+            InjectorConfigFile => "~\InjectorSample.json"
         )
         port map (
 

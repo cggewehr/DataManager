@@ -26,8 +26,8 @@ entity PE is
 
     generic(
         -- Path to JSON file containing PE and APP parameters
-        PEConfigFile          : string;
-        InjectorConfigFile    : string
+        PEConfigFile        : string;
+        InjectorConfigFile  : string
     );
     port(
 

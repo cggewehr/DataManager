@@ -133,8 +133,8 @@ package body PE_PKG is
 
 
     -- Fills array of amount of messages in a burst for each target PE
-    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurst_t is
-        variable AmountOfMessagesInBurstArray : AmountOfMessagesInBurst_t(0 to AmountOfTargetPEs - 1);
+    function FillAmountOfMessagesInBurstArray(InjectorJSONConfig : T_JSON ; AmountOfTargetPEs : integer) return AmountOfMessagesInBurstArray_t is
+        variable AmountOfMessagesInBurstArray : AmountOfMessagesInBurstArray_t(0 to AmountOfTargetPEs - 1);
     begin
 
         FillAmountOfMessagesInBurstArrayLoop : for i in 0 to (AmountOfTargetPEs - 1) loop
@@ -291,20 +291,20 @@ package body PE_PKG is
 	    k := seed1 / 53668;
 	    s1 := 40014 * (seed1 - k * 53668) - k * 12211;
 
-	    if s1 < 0 then
-	        seed1 := s1 + 2147483563;
-	    else
-	        seed1 := s1;
-	    end if;
+	    --if s1 < 0 then
+	    --    seed1 := s1 + 2147483563;
+	    --else
+	    --    seed1 := s1;
+	    --end if;
 
 	    k := seed2 / 52774;
 	    s2 := 40692 * (seed2 - k * 52774) - k * 3791;
 
-	    if s2 < 0 then
-	        seed2 := s2 + 2147483399;
-	    else
-	        seed2 := s2;
-	    end if;
+	    --if s2 < 0 then
+	    --    seed2 := s2 + 2147483399;
+	    --else
+	    --    seed2 := s2;
+	    --end if;
 
 	    z := seed1 - seed2;
 
