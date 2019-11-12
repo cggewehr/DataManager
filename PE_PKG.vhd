@@ -233,12 +233,12 @@ package body PE_PKG is
                 elsif payloadFlitString = "TMSTP" then
 
                     -- Flags for "real time" processing
-                    Payloads(target, flit) := std_logic_vector(to_unsigned(timestampFlag, DataWidth - 1));
+                    Payloads(target, flit) := std_logic_vector(to_unsigned(timestampFlag, DataWidth));
 
                 elsif payloadFlitString = "AMMSG" then 
 
                     -- Flags for "real time" processing
-                    Payloads(target, flit) := std_logic_vector(to_unsigned(amountOfMessagesSentFlag, DataWidth - 1));
+                    Payloads(target, flit) := std_logic_vector(to_unsigned(amountOfMessagesSentFlag, DataWidth));
 
                 elsif payloadFlitString = "BLANK" then
 

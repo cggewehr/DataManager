@@ -1626,7 +1626,8 @@ package body JSON is
 	function jsonGetIntegerArray(JSONContext : T_JSON; Path : string) return integer_vector is
 	  variable len: natural:=0;
 	begin
-	  while jsonIsNumber(JSONContext, Path & "/" & to_string(len)) loop
+	  --while jsonIsNumber(JSONContext, Path & "/" & to_string(len)) loop
+	  while jsonIsNumber(JSONContext, Path & "/" & integer'image(len)) loop
 	    len := len+1;
 	  end loop;
 	  return jsonGetIntegerArray(JSONContext, Path, len);
@@ -1637,7 +1638,8 @@ package body JSON is
 	  variable return_value : integer_vector(Len-1 downto 0);
 	begin
 	  for i in 0 to Len-1 loop
-	    return_value(i) := to_natural_dec(jsonGetString(JSONContext, Path & "/" & to_string(i)));
+	    --return_value(i) := to_natural_dec(jsonGetString(JSONContext, Path & "/" & to_string(i)));
+	    return_value(i) := to_natural_dec(jsonGetString(JSONContext, Path & "/" & integer'image(i)));
 	  end loop;
 	  return return_value;
 	end function;

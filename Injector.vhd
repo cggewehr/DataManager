@@ -27,8 +27,8 @@ library work;
 entity Injector is
 
 	generic (
-        PEConfigFile          : string;
-        InjectorConfigFile    : string
+        PEConfigFile          : string := "~\PESample.json";
+        InjectorConfigFile    : string := "~\InjectorSample.json"
 	);
 
 	port (
@@ -105,10 +105,10 @@ architecture RTL of Injector is
     signal RandomNumber : real;
 
     -- Clock Counter
-    signal ClockCounter : integer range 0 to (2**32) - 1 := 0;
+    signal ClockCounter : integer range 0 to ((2**31) - 1) := 0;
 
     -- Semaphore for flow control if DPD injector is instantiated
-    signal Semaphore : integer range 0 to (2**32) - 1 := 0;
+    signal Semaphore : integer range 0 to ((2**31) - 1) := 0;
 
 begin
 
@@ -122,7 +122,7 @@ begin
 
         elsif rising_edge(Clock) then
 
-            ClockCounter <= incr(ClockCounter, ((2**32) - 1) , 0);
+            ClockCounter <= incr(ClockCounter, ((2**31) - 1) , 0);
 
         end if;
 
@@ -364,7 +364,7 @@ begin
                     if Semaphore > 0 then
 
                         -- A new message was received, goes into processing state and decreases Semaphore
-                        Semaphore <= decr(Semaphore, (2**32) - 1, 0);
+                        Semaphore <= decr(Semaphore, (2**31) - 1, 0);
                         processingCounter := 0;
                         nextState := Sprocessing;
 
@@ -507,7 +507,7 @@ begin
     -- Assumes header = [ADDR, SIZE]
     Receiver : block is
 
-        signal messageCounter: integer range 0 to (2**32) - 1 := 0;
+        signal messageCounter: integer range 0 to (2**31) - 1 := 0;
         
     begin
 
@@ -558,8 +558,8 @@ begin
 
                         -- Signals a message has been received to DPD injector and updates counters
                         flitCounter := 0;
-                        messageCounter <= incr(messageCounter, (2**32) - 1, 0);
-                        Semaphore <= incr(Semaphore, (2**32) - 1, 0);
+                        messageCounter <= incr(messageCounter, (2**31) - 1, 0);
+                        Semaphore <= incr(Semaphore, (2**31) - 1, 0);
 
                     end if;
 
