@@ -149,10 +149,8 @@ begin
         );
 
 
-    BufferNOCInterface : block (CommStructure = "NOC") is
-        
-    begin
-    
+    BufferNOCInterface: if (CommStructure = "NOC") generate
+
         -- NoC Interface
         clock_tx <= InjectorClock; -- injectorClock = Output buffer clock
         data_out <= OutDataOut;
@@ -164,25 +162,22 @@ begin
         InDataIn <= data_in;
         credit_o <= InBufferAvailableFlag;             
 
-    end block BufferNOCInterface;
+    end generate BufferNOCInterface;
 
 
-    BufferCrossbarInterface : block (CommStructure = "XBR" or CommStructure = "P2P") is
-        
-    begin
+    BufferCrossbarInterface: if (CommStructure = "XBR" or CommStructure = "P2P") generate
 
         -- TODO: implement crossbar interface
     
-    end block BufferCrossbarInterface;
+    end generate BufferCrossbarInterface;
 
 
-    BufferBusInterface : block (CommStructure = "BUS") is
-        
-    begin
+    BufferBusInterface : if (CommStructure = "BUS") generate
 
         -- TODO: implement bus interface
     
-    end block BufferBusInterface;
+    end generate BufferBusInterface;
+
 
 
     InjectorClockGenerator: process
@@ -195,30 +190,64 @@ begin
     end process;
 
 
-    Injector: entity work.Injector
-        generic map(
-            PEConfigFile => PEConfigFile,
-            InjectorConfigFile => InjectorConfigFile
-        )
-        port map(
-            
-            -- Basic
-            Clock => InjectorClock,
-            Reset => Reset,
+    FXDInjector: if InjectorType = "FXD" generate
 
-            -- Input Interface
-            DataIn => InDataOut,
-            DataInAV => InDataOutAV,
-            InputBufferReadRequest => InReadRequest,
+        FXDInj: entity work.Injector(FXD)
+            generic map(
+                PEConfigFile => PEConfigFile,
+                InjectorConfigFile => InjectorConfigFile
+            )
+            port map(
+                
+                -- Basic
+                Clock => InjectorClock,
+                Reset => Reset,
 
-            -- Output Interface
-            DataOut => OutDataIn,
-            DataOutAV => OutDataInAV,
-            OutputBufferWriteRequest => OutWriteRequest,
-            OutputBufferWriteACK => OutWriteACK,
-            OutputBufferSlotAvailable => OutBufferAvailableFlag
+                -- Input Interface
+                DataIn => InDataOut,
+                DataInAV => InDataOutAV,
+                InputBufferReadRequest => InReadRequest,
 
-        );
+                -- Output Interface
+                DataOut => OutDataIn,
+                DataOutAV => OutDataInAV,
+                OutputBufferWriteRequest => OutWriteRequest,
+                OutputBufferWriteACK => OutWriteACK,
+                OutputBufferSlotAvailable => OutBufferAvailableFlag
+
+            );
+
+    end generate FXDInjector;
+
+
+    DPDInjector: if InjectorType = "DPD" generate
+
+        DPDInj: entity work.Injector(DPD)
+            generic map(
+                PEConfigFile => PEConfigFile,
+                InjectorConfigFile => InjectorConfigFile
+            )
+            port map(
+                
+                -- Basic
+                Clock => InjectorClock,
+                Reset => Reset,
+
+                -- Input Interface
+                DataIn => InDataOut,
+                DataInAV => InDataOutAV,
+                InputBufferReadRequest => InReadRequest,
+
+                -- Output Interface
+                DataOut => OutDataIn,
+                DataOutAV => OutDataInAV,
+                OutputBufferWriteRequest => OutWriteRequest,
+                OutputBufferWriteACK => OutWriteACK,
+                OutputBufferSlotAvailable => OutBufferAvailableFlag
+
+            );
+
+    end generate DPDInjector;
 
 end architecture Injector;
 

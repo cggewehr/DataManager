@@ -56,18 +56,6 @@ architecture RTL of CircularBuffer is
 
     end procedure;
 
-    -- Decrements and wraps around
-    procedure decr(signal value : inout integer) is
-
-    begin
-
-        if value = 0 then
-            value <= (bufferSize - 1);
-        else
-            value <= value - 1;
-        end if;
-
-    end procedure;
 
 begin
 
@@ -86,7 +74,6 @@ begin
 
             writePointer <= 0;
             writeACK <= '0';
-            dataCount <= 0;
 
         elsif rising_edge(Clock) then
 
@@ -99,7 +86,6 @@ begin
                 bufferArray(writePointer) <= dataIn;
                 writeACK <= '1';
                 incr(writePointer);
-                incr(dataCount);
 
             end if;
 
@@ -129,10 +115,21 @@ begin
                 dataOut <= bufferArray(readPointer);
                 dataOutAV <= '1';
                 incr(readPointer);
-                decr(dataCount);
 
             end if;
 
+        end if;
+
+    end process; 
+
+
+    -- Update dataCount (amount of buffer slots filled)
+    DataCountProcess: process(readPointer, writePointer) begin
+
+        if readPointer < writePointer then
+            dataCount <= readPointer - writePointer + bufferSize;
+        else
+            dataCount <= readPointer - writePointer;
         end if;
 
     end process;
