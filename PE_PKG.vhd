@@ -15,6 +15,7 @@ package PE_PKG is
     -- Common constants (used by all project files)
     constant DataWidth: integer := TAM_FLIT;
     subtype DataWidth_t is std_logic_vector(DataWidth - 1 downto 0);
+    constant UINT32MaxValue: integer := 4294967295;
 
     -- Typedefs for injector parameters types
     type SourcePEsArray_t is array(natural range <>) of integer;

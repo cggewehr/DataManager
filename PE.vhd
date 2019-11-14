@@ -179,7 +179,6 @@ begin
     end generate BufferBusInterface;
 
 
-
     InjectorClockGenerator: process
 
     begin
@@ -190,64 +189,31 @@ begin
     end process;
 
 
-    FXDInjector: if InjectorType = "FXD" generate
+    Injector: entity work.Injector(FXD)
+        generic map(
+            PEConfigFile => PEConfigFile,
+            InjectorConfigFile => InjectorConfigFile
+        )
+        port map(
+            
+            -- Basic
+            Clock => InjectorClock,
+            Reset => Reset,
 
-        FXDInj: entity work.Injector(FXD)
-            generic map(
-                PEConfigFile => PEConfigFile,
-                InjectorConfigFile => InjectorConfigFile
-            )
-            port map(
-                
-                -- Basic
-                Clock => InjectorClock,
-                Reset => Reset,
+            -- Input Interface
+            DataIn => InDataOut,
+            DataInAV => InDataOutAV,
+            InputBufferReadRequest => InReadRequest,
 
-                -- Input Interface
-                DataIn => InDataOut,
-                DataInAV => InDataOutAV,
-                InputBufferReadRequest => InReadRequest,
+            -- Output Interface
+            DataOut => OutDataIn,
+            DataOutAV => OutDataInAV,
+            OutputBufferWriteRequest => OutWriteRequest,
+            OutputBufferWriteACK => OutWriteACK,
+            OutputBufferSlotAvailable => OutBufferAvailableFlag
 
-                -- Output Interface
-                DataOut => OutDataIn,
-                DataOutAV => OutDataInAV,
-                OutputBufferWriteRequest => OutWriteRequest,
-                OutputBufferWriteACK => OutWriteACK,
-                OutputBufferSlotAvailable => OutBufferAvailableFlag
+        );
 
-            );
-
-    end generate FXDInjector;
-
-
-    DPDInjector: if InjectorType = "DPD" generate
-
-        DPDInj: entity work.Injector(DPD)
-            generic map(
-                PEConfigFile => PEConfigFile,
-                InjectorConfigFile => InjectorConfigFile
-            )
-            port map(
-                
-                -- Basic
-                Clock => InjectorClock,
-                Reset => Reset,
-
-                -- Input Interface
-                DataIn => InDataOut,
-                DataInAV => InDataOutAV,
-                InputBufferReadRequest => InReadRequest,
-
-                -- Output Interface
-                DataOut => OutDataIn,
-                DataOutAV => OutDataInAV,
-                OutputBufferWriteRequest => OutWriteRequest,
-                OutputBufferWriteACK => OutWriteACK,
-                OutputBufferSlotAvailable => OutBufferAvailableFlag
-
-            );
-
-    end generate DPDInjector;
 
 end architecture Injector;
 

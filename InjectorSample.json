@@ -1,29 +1,29 @@
 {
   "InjectorType": "FXD",
   "FlowType": "RND",
-  "InjectionRate": "50",
-  "PEPos": "0",
-  "APPID": "1",
-  "ThreadID": "0",
-  "AverageProcessingTimeInClockPulses": "1",
-  "AmountOfSourcePEs": "1",
+  "InjectionRate": 50,
+  "PEPos": 22,
+  "APPID": 9,
+  "ThreadID": 47,
+  "AverageProcessingTimeInClockPulses": 10,
+  "AmountOfSourcePEs": 1,
   "SourcePEs": [
-    "1"
+    1
   ],
   "SourcePayloadSize": [
-    "10"
+    10
   ],
   "AmountOfTargetPEs": "1",
   "TargetPEs": [
-    "2"
+    2
   ],
   "AmountOfMessagesInBurst": [
-    "5"
+    5
   ],
   "TargetPayloadSize": [
-    "20"
+    6
   ],
-  "HeaderSize": "2",
+  "HeaderSize": 3,
   "Headers": {
     "Header2": [
       "ADDR",
@@ -54,8 +54,8 @@
       "BLANK"
     ]
   },
-  "timestampFlag" : "256",
-  "amountOfMessagesSentFlag": "512",
-  "RNGSeed1" : "32",
-  "RNGSeed2" : "22"
+  "timestampFlag" : 256,
+  "amountOfMessagesSentFlag": 512,
+  "RNGSeed1" : 32,
+  "RNGSeed2" : 22
 }
