@@ -21,9 +21,9 @@
     5
   ],
   "TargetPayloadSize": [
-    6
+    20
   ],
-  "HeaderSize": 3,
+  "HeaderSize": 2,
   "Headers": {
     "Header2": [
       "ADDR",

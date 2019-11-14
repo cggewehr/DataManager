@@ -15,7 +15,7 @@ package PE_PKG is
     -- Common constants (used by all project files)
     constant DataWidth: integer := TAM_FLIT;
     subtype DataWidth_t is std_logic_vector(DataWidth - 1 downto 0);
-    constant UINT32MaxValue: integer := 4294967295;
+    constant UINT32MaxValue: integer :=  2147483647;
 
     -- Typedefs for injector parameters types
     type SourcePEsArray_t is array(natural range <>) of integer;
@@ -148,12 +148,16 @@ package body PE_PKG is
 
 
     -- Builds header for each target PE
-    function BuildHeaders(InjectorJSONConfig : T_JSON ; HeaderSize : integer ; TargetPayloadSizeArray : TargetPayloadSizeArray_t ; TargetPEsArray : TargetPEsArray_t) return HeaderFlits_t is
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t is
         variable Headers : HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
         variable headerFlitString : string(1 to 4);
     begin
 
+    	report "Compiling header flits";
+
         BuildHeaderLoop: for target in TargetPEsArray'range loop
+
+        	report "    Compiling header for target PE " & integer'image(TargetPEsArray(target));
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
@@ -181,6 +185,9 @@ package body PE_PKG is
                     Headers(target, flit) := (others => '1');
 
                 end if;
+
+                report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit))));
+
                                 
             end loop BuildFlitLoop;
 
@@ -200,7 +207,11 @@ package body PE_PKG is
         variable amountOfMessagesSentFlag : integer := integer'value(jsonGetString(InjectorJSONConfig, "amountOfMessagesSentFlag"));
     begin
 
+    	report "Compiling payload flits";
+
         BuildPayloadLoop: for target in TargetPayloadSizeArray'range loop
+
+        	report "    Compiling payload for target PE " & integer'image(TargetPEsArray(target));
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
 
@@ -253,9 +264,11 @@ package body PE_PKG is
 
                 end if;
 
-            end loop;
+                report "        Flit " & integer'image(flit) & " of payload of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & payloadFlitString & " = " & integer'image(to_integer(unsigned(Payloads(target, flit))));
 
-        end loop;
+            end loop BuildFlitLoop;
+
+        end loop BuildPayloadLoop;
 
         return Payloads;
 

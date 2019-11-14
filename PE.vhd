@@ -26,8 +26,8 @@ entity PE is
 
     generic(
         -- Path to JSON file containing PE and APP parameters
-        PEConfigFile        : string := "~\PESample.json";
-        InjectorConfigFile  : string := "~\InjectorSample.json"
+        PEConfigFile        : string := "C:\Projetos Vivado\Injetor\PESample.json";
+        InjectorConfigFile  : string := "C:\Projetos Vivado\Injetor\InjectorSample.json"
     );
     port(
 
@@ -59,11 +59,11 @@ architecture Injector of PE is
 
     -- INJECTOR CONSTANTS ("FXD", "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(PEJSONConfig, "InjectorType");
-    constant InjectorClockPeriod: integer := integer'value(jsonGetString(PEJSONConfig, "InjectorClockPeriod")); -- in ns
+    constant InjectorClockPeriod: integer := jsonGetInteger(PEJSONConfig, "InjectorClockPeriod"); -- in ns
     signal InjectorClock: std_logic := '0';
 
     -- INPUT BUFFER (DATA FROM STRUCTURE)
-    constant InBufferSize: integer := integer'value(jsonGetString(PEJSONConfig, "InBufferSize"));
+    constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
     signal InDataIn: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal InDataInAV: std_logic;
     signal InWriteRequest: std_logic;
@@ -76,7 +76,7 @@ architecture Injector of PE is
     signal InBufferAvailableFlag: std_logic;
 
     -- OUTPUT BUFFER (DATA TO STRUCTURE)
-    constant OutBufferSize: integer := integer'value(jsonGetString(PEJSONConfig, "OutBufferSize"));
+    constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
     signal OutDataIn: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal OutDataInAV: std_logic;
     signal OutWriteRequest: std_logic;
@@ -189,7 +189,7 @@ begin
     end process;
 
 
-    Injector: entity work.Injector(FXD)
+    Injector: entity work.Injector
         generic map(
             PEConfigFile => PEConfigFile,
             InjectorConfigFile => InjectorConfigFile

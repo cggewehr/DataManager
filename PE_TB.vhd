@@ -63,8 +63,8 @@ begin
     -- Instantiate the Unit Under Test (UUT)
     uut: entity work.PE 
         generic map(
-            PEConfigFile => "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\PESample.json",
-            InjectorConfigFile => "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\InjectorSample.json"
+            PEConfigFile => "C:\Projetos Vivado\Injetor\PESample.json",
+            InjectorConfigFile => "C:\Projetos Vivado\Injetor\InjectorSample.json"
         )
         port map (
 
@@ -87,9 +87,9 @@ begin
     clockProcess: process
     begin
 
-		    clock <= '0';
+		    Clock <= '0';
 		    wait for clock_period/2;
-		    clock <= '1';
+		    Clock <= '1';
 		    wait for clock_period/2;
         
     end process;
@@ -99,9 +99,9 @@ begin
     begin		
 
         -- hold reset state for 100 ns.
-        reset <= '1';
+        Reset <= '1';
         wait for 100 ns;	
-        reset <= '0';
+        Reset <= '0';
       
         -- insert stimulus here 
 

@@ -1,7 +1,7 @@
 {
   "CommStructure" : "NOC",
   "InjectorType" : "FXD",
-  "InjectorClockPeriod" : "10",
-  "InBufferSize" : "10",
-  "OutBufferSize" : "10"
+  "InjectorClockPeriod" : 10,
+  "InBufferSize" : 10,
+  "OutBufferSize" : 10
 }

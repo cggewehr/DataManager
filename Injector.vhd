@@ -129,25 +129,28 @@ begin
 
 
     -- Generates either fixed rate injector (injects flit at a fixed rate) or dependent injector (waits for a message to send another message)
-    DPDInjGen: if (FlowType = "DPD") generate
+    DependantInjector: if (FlowType = "DPD") generate
 
         -- Waits for a specific message, then sends out messages after that message is received. (Only instanciated if InjectorType is set as "DPD" on JSON config file).
-        DependantInjector: block is
+        DPD: block is
+        
+            type state_t is (Sreset, Swaiting, Sprocessing, Ssending);
+            signal debugCurrentState, debugnextState: state_t;
             
         begin
 
             DependantInjectorProcess: process(Clock, Reset)
 
-                variable flitCounter : integer := 0;
-                variable processingCounter : integer := 0;
-                variable flitTemp : DataWidth_t := (others=>'0');
-                variable firstFlitOutTimestamp : DataWidth_t;
-                variable amountOfMessagesSent : DataWidth_t;
-                variable currentTargetPE : integer := 0;
-                variable burstCounter : integer := 0;
+                variable flitCounter: integer := 0;
+                variable processingCounter: integer := 0;
+                variable flitTemp: DataWidth_t := (others=>'0');
+                variable firstFlitOutTimestamp: DataWidth_t;
+                variable amountOfMessagesSent: DataWidth_t;
+                variable currentTargetPE: integer := 0;
+                variable burstCounter: integer := 0;
 
-                type state_t is (Sreset, Swaiting, Sprocessing, Ssending);
-                variable nextState, currentState : state_t;
+                --type state_t is (Sreset, Swaiting, Sprocessing, Ssending);
+                variable nextState, currentState: state_t;
 
             begin
 
@@ -162,6 +165,9 @@ begin
                         currentState := nextState;
 
                     end if;
+                    
+                    debugCurrentState <= currentState;
+                    debugNextState <= nextState;
 
                     -- Sets default values
                     if currentState = Sreset then
@@ -325,29 +331,33 @@ begin
 
             end process;
         
-        end block DependantInjector;
+        end block DPD;
         
-    end generate DPDInjGen;
+    end generate DependantInjector;
 
-    FXDInjGen: if FlowType = "FXD" generate
+
+    FixedRateInjector: if FlowType = "FXD" generate
 
         -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
-        FixedRateInjetor: block is
+        FXD: block is
+        
+            type state_t is (Sreset, Ssending, Swaiting);
+            signal debugCurrentState, debugNextState: state_t;
 
         begin
 
             FixedRateInjetorProcess: process(Clock, Reset)
 
-                variable injectionCounter : integer := 0;
-                variable injectionPeriod : integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
-                variable flitTemp : DataWidth_t := (others=>'0');
-                variable firstFlitOutTimestamp : DataWidth_t := (others=>'0');
-                variable amountOfMessagesSent : DataWidth_t := (others=>'0');
-                variable currentTargetPE : integer := 0;
-                variable burstCounter : integer := 0;
+                variable injectionCounter: integer := 0;
+                variable injectionPeriod: integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
+                variable flitTemp: DataWidth_t := (others=>'0');
+                variable firstFlitOutTimestamp: DataWidth_t := (others=>'0');
+                variable amountOfMessagesSent: DataWidth_t := (others=>'0');
+                variable currentTargetPE: integer := 0;
+                variable burstCounter: integer := 0;
 
-                type state_t is (Sreset, Ssending, Swaiting);
-                variable nextState, currentState : state_t;
+                -- type state_t is (Sreset, Ssending, Swaiting);
+                variable nextState, currentState: state_t;
 
             begin
 
@@ -362,6 +372,9 @@ begin
                         currentState := nextState;
 
                     end if;
+
+                    debugNextState <= nextState;
+                    debugCurrentState <= debugCurrentState;
 
                     -- Sets default values
                     if currentState = Sreset then
@@ -506,9 +519,9 @@ begin
 
             end process;
 
-        end block FixedRateInjetor;
+        end block FXD;
 
-    end generate FXDInjGen;
+    end generate FixedRateInjector;
 
 
     -- Assumes header = [ADDR, SIZE]

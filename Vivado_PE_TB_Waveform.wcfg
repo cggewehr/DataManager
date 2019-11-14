@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="PE_TB_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="PE_TB" />
+            <top_module name="hemps_defaults" />
+            <top_module name="hemps_pkg" />
+            <top_module name="json" />
+            <top_module name="pe_pkg" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="978546934fs"></ZoomEndTime>
+      <Cursor1Time time="140954000fs"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="175"></NameColumnWidth>
+      <ValueColumnWidth column_width="134"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="69" />
+   <wvobject fp_name="/PE_TB/uut/Clock" type="logic">
+      <obj_property name="ElementShortName">Clock</obj_property>
+      <obj_property name="ObjectShortName">Clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Reset" type="logic">
+      <obj_property name="ElementShortName">Reset</obj_property>
+      <obj_property name="ObjectShortName">Reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Clock_tx" type="logic">
+      <obj_property name="ElementShortName">Clock_tx</obj_property>
+      <obj_property name="ObjectShortName">Clock_tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Tx" type="logic">
+      <obj_property name="ElementShortName">Tx</obj_property>
+      <obj_property name="ObjectShortName">Tx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Data_out" type="array">
+      <obj_property name="ElementShortName">Data_out[31:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_out[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Credit_i" type="logic">
+      <obj_property name="ElementShortName">Credit_i</obj_property>
+      <obj_property name="ObjectShortName">Credit_i</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Clock_rx" type="logic">
+      <obj_property name="ElementShortName">Clock_rx</obj_property>
+      <obj_property name="ObjectShortName">Clock_rx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Rx" type="logic">
+      <obj_property name="ElementShortName">Rx</obj_property>
+      <obj_property name="ObjectShortName">Rx</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Data_in" type="array">
+      <obj_property name="ElementShortName">Data_in[31:0]</obj_property>
+      <obj_property name="ObjectShortName">Data_in[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Credit_o" type="logic">
+      <obj_property name="ElementShortName">Credit_o</obj_property>
+      <obj_property name="ObjectShortName">Credit_o</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InjectorClock" type="logic">
+      <obj_property name="ElementShortName">InjectorClock</obj_property>
+      <obj_property name="ObjectShortName">InjectorClock</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider39">
+      <obj_property name="label">InBuffer</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/Clock" type="logic">
+      <obj_property name="ElementShortName">Clock</obj_property>
+      <obj_property name="ObjectShortName">Clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/Reset" type="logic">
+      <obj_property name="ElementShortName">Reset</obj_property>
+      <obj_property name="ObjectShortName">Reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/DataIn" type="array">
+      <obj_property name="ElementShortName">DataIn[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DataIn[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/DataInAV" type="logic">
+      <obj_property name="ElementShortName">DataInAV</obj_property>
+      <obj_property name="ObjectShortName">DataInAV</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/WriteRequest" type="logic">
+      <obj_property name="ElementShortName">WriteRequest</obj_property>
+      <obj_property name="ObjectShortName">WriteRequest</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/WriteACK" type="logic">
+      <obj_property name="ElementShortName">WriteACK</obj_property>
+      <obj_property name="ObjectShortName">WriteACK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/DataOut" type="array">
+      <obj_property name="ElementShortName">DataOut[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DataOut[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/DataOutAV" type="logic">
+      <obj_property name="ElementShortName">DataOutAV</obj_property>
+      <obj_property name="ObjectShortName">DataOutAV</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/ReadRequest" type="logic">
+      <obj_property name="ElementShortName">ReadRequest</obj_property>
+      <obj_property name="ObjectShortName">ReadRequest</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/BufferEmptyFlag" type="logic">
+      <obj_property name="ElementShortName">BufferEmptyFlag</obj_property>
+      <obj_property name="ObjectShortName">BufferEmptyFlag</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/BufferFullFlag" type="logic">
+      <obj_property name="ElementShortName">BufferFullFlag</obj_property>
+      <obj_property name="ObjectShortName">BufferFullFlag</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/BufferAvailableFlag" type="logic">
+      <obj_property name="ElementShortName">BufferAvailableFlag</obj_property>
+      <obj_property name="ObjectShortName">BufferAvailableFlag</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/bufferArray" type="array">
+      <obj_property name="ElementShortName">bufferArray[9:0][31:0]</obj_property>
+      <obj_property name="ObjectShortName">bufferArray[9:0][31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/readPointer" type="other">
+      <obj_property name="ElementShortName">readPointer</obj_property>
+      <obj_property name="ObjectShortName">readPointer</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/writePointer" type="other">
+      <obj_property name="ElementShortName">writePointer</obj_property>
+      <obj_property name="ObjectShortName">writePointer</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/InBuffer/dataCount" type="other">
+      <obj_property name="ElementShortName">dataCount</obj_property>
+      <obj_property name="ObjectShortName">dataCount</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider51">
+      <obj_property name="label">OutBuffer</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/Clock" type="logic">
+      <obj_property name="ElementShortName">Clock</obj_property>
+      <obj_property name="ObjectShortName">Clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/Reset" type="logic">
+      <obj_property name="ElementShortName">Reset</obj_property>
+      <obj_property name="ObjectShortName">Reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/DataIn" type="array">
+      <obj_property name="ElementShortName">DataIn[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DataIn[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/DataInAV" type="logic">
+      <obj_property name="ElementShortName">DataInAV</obj_property>
+      <obj_property name="ObjectShortName">DataInAV</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/WriteRequest" type="logic">
+      <obj_property name="ElementShortName">WriteRequest</obj_property>
+      <obj_property name="ObjectShortName">WriteRequest</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/WriteACK" type="logic">
+      <obj_property name="ElementShortName">WriteACK</obj_property>
+      <obj_property name="ObjectShortName">WriteACK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/DataOut" type="array">
+      <obj_property name="ElementShortName">DataOut[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DataOut[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/DataOutAV" type="logic">
+      <obj_property name="ElementShortName">DataOutAV</obj_property>
+      <obj_property name="ObjectShortName">DataOutAV</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/ReadRequest" type="logic">
+      <obj_property name="ElementShortName">ReadRequest</obj_property>
+      <obj_property name="ObjectShortName">ReadRequest</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/BufferEmptyFlag" type="logic">
+      <obj_property name="ElementShortName">BufferEmptyFlag</obj_property>
+      <obj_property name="ObjectShortName">BufferEmptyFlag</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/BufferFullFlag" type="logic">
+      <obj_property name="ElementShortName">BufferFullFlag</obj_property>
+      <obj_property name="ObjectShortName">BufferFullFlag</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/BufferAvailableFlag" type="logic">
+      <obj_property name="ElementShortName">BufferAvailableFlag</obj_property>
+      <obj_property name="ObjectShortName">BufferAvailableFlag</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/bufferArray" type="array">
+      <obj_property name="ElementShortName">bufferArray[9:0][31:0]</obj_property>
+      <obj_property name="ObjectShortName">bufferArray[9:0][31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/readPointer" type="other">
+      <obj_property name="ElementShortName">readPointer</obj_property>
+      <obj_property name="ObjectShortName">readPointer</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/writePointer" type="other">
+      <obj_property name="ElementShortName">writePointer</obj_property>
+      <obj_property name="ObjectShortName">writePointer</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/OutBuffer/dataCount" type="other">
+      <obj_property name="ElementShortName">dataCount</obj_property>
+      <obj_property name="ObjectShortName">dataCount</obj_property>
+   </wvobject>
+   <wvobject type="divider" fp_name="divider63">
+      <obj_property name="label">Injector</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/InjectorType" type="array">
+      <obj_property name="ElementShortName">InjectorType[1:3]</obj_property>
+      <obj_property name="ObjectShortName">InjectorType[1:3]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/FlowType" type="array">
+      <obj_property name="ElementShortName">FlowType[1:3]</obj_property>
+      <obj_property name="ObjectShortName">FlowType[1:3]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/InjectionRate" type="other">
+      <obj_property name="ElementShortName">InjectionRate</obj_property>
+      <obj_property name="ObjectShortName">InjectionRate</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/PEPos" type="other">
+      <obj_property name="ElementShortName">PEPos</obj_property>
+      <obj_property name="ObjectShortName">PEPos</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/AppID" type="other">
+      <obj_property name="ElementShortName">AppID</obj_property>
+      <obj_property name="ObjectShortName">AppID</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/ThreadID" type="other">
+      <obj_property name="ElementShortName">ThreadID</obj_property>
+      <obj_property name="ObjectShortName">ThreadID</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/AverageProcessingTimeInClockPulses" type="other">
+      <obj_property name="ElementShortName">AverageProcessingTimeInClockPulses</obj_property>
+      <obj_property name="ObjectShortName">AverageProcessingTimeInClockPulses</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/Clock" type="logic">
+      <obj_property name="ElementShortName">Clock</obj_property>
+      <obj_property name="ObjectShortName">Clock</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/Reset" type="logic">
+      <obj_property name="ElementShortName">Reset</obj_property>
+      <obj_property name="ObjectShortName">Reset</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/DataIn" type="array">
+      <obj_property name="ElementShortName">DataIn[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DataIn[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/DataInAV" type="logic">
+      <obj_property name="ElementShortName">DataInAV</obj_property>
+      <obj_property name="ObjectShortName">DataInAV</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/InputBufferReadRequest" type="logic">
+      <obj_property name="ElementShortName">InputBufferReadRequest</obj_property>
+      <obj_property name="ObjectShortName">InputBufferReadRequest</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/DataOut" type="array">
+      <obj_property name="ElementShortName">DataOut[31:0]</obj_property>
+      <obj_property name="ObjectShortName">DataOut[31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/DataOutAV" type="logic">
+      <obj_property name="ElementShortName">DataOutAV</obj_property>
+      <obj_property name="ObjectShortName">DataOutAV</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/OutputBufferSlotAvailable" type="logic">
+      <obj_property name="ElementShortName">OutputBufferSlotAvailable</obj_property>
+      <obj_property name="ObjectShortName">OutputBufferSlotAvailable</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/OutputBufferWriteRequest" type="logic">
+      <obj_property name="ElementShortName">OutputBufferWriteRequest</obj_property>
+      <obj_property name="ObjectShortName">OutputBufferWriteRequest</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/OutputBufferWriteACK" type="logic">
+      <obj_property name="ElementShortName">OutputBufferWriteACK</obj_property>
+      <obj_property name="ObjectShortName">OutputBufferWriteACK</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/ClockCounter" type="other">
+      <obj_property name="ElementShortName">ClockCounter</obj_property>
+      <obj_property name="ObjectShortName">ClockCounter</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/Semaphore" type="other">
+      <obj_property name="ElementShortName">Semaphore</obj_property>
+      <obj_property name="ObjectShortName">Semaphore</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits" type="array">
+      <obj_property name="ElementShortName">HeaderFlits[0:0,0:1][31:0]</obj_property>
+      <obj_property name="ObjectShortName">HeaderFlits[0:0,0:1][31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/PayloadFlits" type="array">
+      <obj_property name="ElementShortName">PayloadFlits[0:0,0:19][31:0]</obj_property>
+      <obj_property name="ObjectShortName">PayloadFlits[0:0,0:19][31:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/debugCurrentState" type="other">
+      <obj_property name="ElementShortName">debugCurrentState</obj_property>
+      <obj_property name="ObjectShortName">debugCurrentState</obj_property>
+   </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/debugNextState" type="other">
+      <obj_property name="ElementShortName">debugNextState</obj_property>
+      <obj_property name="ObjectShortName">debugNextState</obj_property>
+   </wvobject>
+</wave_config>
