@@ -41,7 +41,6 @@ package PE_PKG is
     function FindMaxPayloadSize(TargetPayloadSizeArray: TargetPayloadSizeArray_t) return integer;
 
     -- Misc functions
-    --function Uniform(Seed1: positive ; Seed2: positive) return real;
     procedure UNIFORM (SEED1, SEED2 : inout POSITIVE; X : out REAL);
     function incr(value: integer ; maxValue: in integer ; minValue: in integer) return integer;
     function decr(value: integer ; maxValue: in integer ; minValue: in integer) return integer;
@@ -299,38 +298,9 @@ package body PE_PKG is
     end function FindMaxPayloadSize;
 
 
-    -- Uniform function, stolen from GHDL ieee.math_real (https://github.com/ghdl/ghdl/blob/master/libraries/openieee/math_real-body.vhdl)
-    -- Returns a pseudo-random value between 0 and 1
-	--function Uniform(Seed1: positive ; Seed2: positive) return real is
- --	    variable z, k : Integer;
-	--    variable s1, s2 : Integer;
-	--begin
-
-	--    k := seed1 / 53668;
-	--    s1 := 40014 * (seed1 - k * 53668) - k * 12211;
-
-	--    if s1 < 0 then
-	--        s1 := s1 + 2147483563;
-	--    end if;
-
-	--    k := seed2 / 52774;
-	--    s2 := 40692 * (seed2 - k * 52774) - k * 3791;
-
-	--    if s2 < 0 then
-	--        s2 := s2 + 2147483399;
-	--    end if;
-
-	--    z := s1 - s2;
-
-	--    if z < 1 then
-	--        z := z + 2147483562;
-	--    end if;
-
-	--    return (real(z) * 4.656613e-10);
-
-	--end function Uniform;
-
-    procedure UNIFORM (SEED1, SEED2 : inout POSITIVE; X : out REAL) is
+    -- Uniform procedure, stolen from GHDL ieee.math_real (https://github.com/ghdl/ghdl/blob/master/libraries/openieee/math_real-body.vhdl)
+    -- Returns a pseudo-random value between 0 and 1 (Algorithm from: Pierre L'Ecuyer, CACM June 1988 Volume 31 Number 6 page 747 figure 3)
+    procedure UNIFORM (SEED1, SEED2: inout POSITIVE; X: out REAL) is
         variable z, k : Integer;
         variable s1, s2 : Integer;
     begin
@@ -361,7 +331,7 @@ package body PE_PKG is
 
         x := real (z) * 4.656613e-10;
 
-  end procedure UNIFORM;
+    end procedure UNIFORM;
 
 
     -- Simple increment and wrap around
