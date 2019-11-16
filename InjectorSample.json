@@ -13,21 +13,30 @@
   "SourcePayloadSize": [
     10
   ],
-  "AmountOfTargetPEs": "1",
+  "AmountOfTargetPEs": 2,
   "TargetPEs": [
-    2
+    2,
+    4
   ],
   "AmountOfMessagesInBurst": [
-    5
+    2,
+    4
   ],
   "TargetPayloadSize": [
-    20
+    20,
+    10
   ],
-  "HeaderSize": 2,
+  "HeaderSize": 3,
   "Headers": {
     "Header2": [
       "ADDR",
-      "SIZE"
+      "SIZE",
+      "TIME"
+    ],
+    "Header4": [
+      "ADDR",
+      "SIZE",
+      "TIME"
     ]
   },
   "Payloads": {
@@ -48,6 +57,18 @@
       "BLANK",
       "BLANK",
       "BLANK",
+      "BLANK",
+      "BLANK",
+      "BLANK",
+      "BLANK"
+    ],
+    "Payload4": [
+      "PEPOS",
+      "APPID",
+      "THDID",
+      "AVGPT",
+      "TMSTP",
+      "AMMSG",
       "BLANK",
       "BLANK",
       "BLANK",

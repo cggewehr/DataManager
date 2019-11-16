@@ -5,8 +5,8 @@ use ieee.std_logic_unsigned.all;
 entity CircularBuffer is
     
     generic (
-        bufferSize: Integer;
-        dataWidth: Integer
+        BufferSize: Integer;
+        DataWidth: Integer
     );
     port (
 
@@ -36,56 +36,59 @@ end entity CircularBuffer;
 
 architecture RTL of CircularBuffer is
 
-    type bufferArray_t is array (natural range <>) of std_logic_vector(dataWidth - 1 downto 0);
-    signal bufferArray : bufferArray_t(bufferSize - 1 downto 0);
+    type bufferArray_t is array (natural range <>) of std_logic_vector(DataWidth - 1 downto 0);
+    signal bufferArray : bufferArray_t(BufferSize - 1 downto 0);
 
     signal readPointer : integer range 0 to BufferSize - 1;
     signal writePointer: integer range 0 to BufferSize - 1;
     signal dataCount: integer range 0 to BufferSize - 1;
+    
+    signal dataCountIncrFlag, dataCountDecrFlag: std_logic;
 
-    -- Increments and wraps around
-    procedure incr(signal value : inout integer) is
+    -- Simple increment and wrap around
+    function incr(value: integer ; maxValue: in integer ; minValue: in integer) return integer is
 
     begin
 
-        if value = (bufferSize - 1) then
-            value <= 0;
+        if value = maxValue then
+            return minValue;
         else
-            value <= value + 1;
+            return value + 1;
         end if;
 
-    end procedure;
-
+    end function incr;
 
 begin
 
+
     -- Asynchrounously sets flags
-    bufferEmptyFlag <= '1' when dataCount = 0 else '0';
-    bufferFullFlag <= '1' when dataCount = BufferSize else '0';
-    bufferAvailableFlag <= '1' when dataCount < bufferSize else '0';
+    bufferEmptyFlag <= '1' when DataCount = 0 else '0';
+    bufferFullFlag <= '1' when DataCount = BufferSize else '0';
+    bufferAvailableFlag <= '1' when DataCount < BufferSize else '0';
 
 
     -- Handles write requests
-    WriteProcess: process(Clock, Reset)
-
-    begin
+    WriteProcess: process(Clock, Reset) begin
 
         if Reset = '1' then
 
             writePointer <= 0;
             writeACK <= '0';
+            dataCountIncrFlag <= '0';
 
         elsif rising_edge(Clock) then
 
-            -- writeACK is defaulted to '0'
+            -- writeACK and dataCountIncrFlag are defaulted to '0'
             writeACK <= '0';
+            dataCountIncrFlag <= '0';
 
             -- Checks for a write request. If there is valid data available and free space on the buffer, write it and send ACK to producer entity
             if writeRequest = '1' and dataInAV = '1' and dataCount < bufferSize then
 
                 bufferArray(writePointer) <= dataIn;
                 writeACK <= '1';
-                incr(writePointer);
+                writePointer <= incr(writePointer, bufferSize - 1, 0);
+                dataCountIncrFlag <= '1';
 
             end if;
 
@@ -95,26 +98,27 @@ begin
 
 
     -- Handles read requests
-    ReadProcess: process(Clock, Reset)
-
-    begin
+    ReadProcess: process(Clock, Reset) begin
 
         if Reset = '1' then
 
             readPointer <= 0;
             dataOutAV <= '0';
+            dataCountDecrFlag <= '0';
 
         elsif rising_edge(Clock) then
 
-            -- DataAV is defaulted do '0'
+            -- DataAV and dataCountDecrFlag are defaulted to '0'
             dataOutAV <= '0';
+            dataCountDecrFlag <= '0';
 
             -- Checks for a read request. If there is data on the buffer, pass in on to consumer entity
             if readRequest = '1' and dataCount > 0 then
 
                 dataOut <= bufferArray(readPointer);
                 dataOutAV <= '1';
-                incr(readPointer);
+                readPointer <= incr(readPointer, bufferSize - 1, 0);
+                dataCountDecrFlag <= '1';
 
             end if;
 
@@ -123,15 +127,34 @@ begin
     end process; 
 
 
-    -- Update dataCount (amount of buffer slots filled)
-    DataCountProcess: process(readPointer, writePointer) begin
+    -- Updates dataCount (amount of buffer slots filled)
+    DataCountProcess: process(Clock, Reset) 
+        variable dataCountTemp: integer range 0 to bufferSize;
+    begin
+    
+        if Reset = '1' then
+        
+            dataCountTemp := 0;
+            dataCount <= 0;
 
-        if readPointer < writePointer then
-            dataCount <= readPointer - writePointer + bufferSize;
-        else
-            dataCount <= readPointer - writePointer;
+        elsif falling_edge(Clock) then
+        
+            if dataCountIncrFlag = '1' then
+            
+                dataCountTemp := incr(dataCount, bufferSize, 0);
+                
+            end if;
+            
+            if dataCountDecrFlag = '1' then
+            
+                dataCountTemp := dataCountTemp - 1;
+                
+            end if;
+            
+            dataCount <= dataCountTemp;
+        
         end if;
-
+       
     end process;
 
 

@@ -63,8 +63,10 @@ begin
     -- Instantiate the Unit Under Test (UUT)
     uut: entity work.PE 
         generic map(
-            PEConfigFile => "C:\Projetos Vivado\Injetor\PESample.json",
-            InjectorConfigFile => "C:\Projetos Vivado\Injetor\InjectorSample.json"
+            --PEConfigFile => "C:\Projetos Vivado\Injetor\PESample.json",
+            PEConfigFile => "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\PESample.json",
+            --InjectorConfigFile => "C:\Projetos Vivado\Injetor\InjectorSample.json"
+            InjectorConfigFile => "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\InjectorSample.json"
         )
         port map (
 
@@ -104,7 +106,7 @@ begin
         Reset <= '0';
       
         -- insert stimulus here 
-
+        Credit_i <= '1';
 
         wait;
     end process;

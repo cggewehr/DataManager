@@ -15,14 +15,14 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="978546934fs"></ZoomEndTime>
-      <Cursor1Time time="140954000fs"></Cursor1Time>
+      <ZoomEndTime time="405500001fs"></ZoomEndTime>
+      <Cursor1Time time="335000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="175"></NameColumnWidth>
-      <ValueColumnWidth column_width="134"></ValueColumnWidth>
+      <ValueColumnWidth column_width="118"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="69" />
+   <WVObjectSize size="68" />
    <wvobject fp_name="/PE_TB/uut/Clock" type="logic">
       <obj_property name="ElementShortName">Clock</obj_property>
       <obj_property name="ObjectShortName">Clock</obj_property>
@@ -190,6 +190,7 @@
    <wvobject fp_name="/PE_TB/uut/OutBuffer/bufferArray" type="array">
       <obj_property name="ElementShortName">bufferArray[9:0][31:0]</obj_property>
       <obj_property name="ObjectShortName">bufferArray[9:0][31:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
    <wvobject fp_name="/PE_TB/uut/OutBuffer/readPointer" type="other">
       <obj_property name="ElementShortName">readPointer</obj_property>
@@ -275,28 +276,26 @@
       <obj_property name="ElementShortName">OutputBufferWriteACK</obj_property>
       <obj_property name="ObjectShortName">OutputBufferWriteACK</obj_property>
    </wvobject>
-   <wvobject fp_name="/PE_TB/uut/Injector/ClockCounter" type="other">
-      <obj_property name="ElementShortName">ClockCounter</obj_property>
-      <obj_property name="ObjectShortName">ClockCounter</obj_property>
+   <wvobject fp_name="/PE_TB/uut/Injector/clockCounter" type="other">
+      <obj_property name="ElementShortName">clockCounter</obj_property>
+      <obj_property name="ObjectShortName">clockCounter</obj_property>
    </wvobject>
-   <wvobject fp_name="/PE_TB/uut/Injector/Semaphore" type="other">
-      <obj_property name="ElementShortName">Semaphore</obj_property>
-      <obj_property name="ObjectShortName">Semaphore</obj_property>
+   <wvobject fp_name="/PE_TB/uut/Injector/semaphore" type="other">
+      <obj_property name="ElementShortName">semaphore</obj_property>
+      <obj_property name="ObjectShortName">semaphore</obj_property>
    </wvobject>
    <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits" type="array">
-      <obj_property name="ElementShortName">HeaderFlits[0:0,0:1][31:0]</obj_property>
-      <obj_property name="ObjectShortName">HeaderFlits[0:0,0:1][31:0]</obj_property>
+      <obj_property name="ElementShortName">HeaderFlits[0:1,0:2][31:0]</obj_property>
+      <obj_property name="ObjectShortName">HeaderFlits[0:1,0:2][31:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
    </wvobject>
    <wvobject fp_name="/PE_TB/uut/Injector/PayloadFlits" type="array">
-      <obj_property name="ElementShortName">PayloadFlits[0:0,0:19][31:0]</obj_property>
-      <obj_property name="ObjectShortName">PayloadFlits[0:0,0:19][31:0]</obj_property>
+      <obj_property name="ElementShortName">PayloadFlits[0:1,0:19][31:0]</obj_property>
+      <obj_property name="ObjectShortName">PayloadFlits[0:1,0:19][31:0]</obj_property>
+      <obj_property name="isExpanded"></obj_property>
    </wvobject>
-   <wvobject fp_name="/PE_TB/uut/Injector/debugCurrentState" type="other">
-      <obj_property name="ElementShortName">debugCurrentState</obj_property>
-      <obj_property name="ObjectShortName">debugCurrentState</obj_property>
-   </wvobject>
-   <wvobject fp_name="/PE_TB/uut/Injector/debugNextState" type="other">
-      <obj_property name="ElementShortName">debugNextState</obj_property>
-      <obj_property name="ObjectShortName">debugNextState</obj_property>
+   <wvobject fp_name="/PE_TB/uut/Injector/fixedrateinjector/fxd/currentState" type="other">
+      <obj_property name="ElementShortName">currentState</obj_property>
+      <obj_property name="ObjectShortName">currentState</obj_property>
    </wvobject>
 </wave_config>

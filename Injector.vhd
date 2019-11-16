@@ -83,8 +83,8 @@ architecture RTL of Injector is
     constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
 
     -- Message parameters
-    constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant SourcePayloadSizeArray : SourcePayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
+    constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant SourcePayloadSizeArray : SourcePayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
     constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
     constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
@@ -99,16 +99,16 @@ architecture RTL of Injector is
     constant timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
     constant amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
 
-    -- RNG (Used by the Uniform function)
-    constant RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
-    constant RNGSeed2 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed2");
-    signal RandomNumber : real;
+    ---- RNG (Used by the Uniform function)
+    --signal RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
+    --signal RNGSeed2 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed2");
+    --signal randomNumber : real;
 
     -- Clock Counter
-    signal ClockCounter : integer range 0 to UINT32MaxValue := 0;
+    signal clockCounter : integer range 0 to UINT32MaxValue := 0;
 
     -- Semaphore for flow control if DPD injector is instantiated
-    signal Semaphore : integer range 0 to UINT32MaxValue := 0;
+    signal semaphore : integer range 0 to UINT32MaxValue := 0;
 
 begin
 
@@ -117,11 +117,11 @@ begin
 
         if Reset = '1' then
 
-            ClockCounter <= 0;
+            clockCounter <= 0;
 
         elsif rising_edge(Clock) then
 
-            ClockCounter <= incr(ClockCounter, UINT32MaxValue , 0);
+            clockCounter <= incr(ClockCounter, UINT32MaxValue , 0);
 
         end if;
 
@@ -129,17 +129,17 @@ begin
 
 
     -- Generates either fixed rate injector (injects flit at a fixed rate) or dependent injector (waits for a message to send another message)
-    DependantInjector: if (FlowType = "DPD") generate
+    DependantInjector: if (InjectorType = "DPD") generate
 
         -- Waits for a specific message, then sends out messages after that message is received. (Only instanciated if InjectorType is set as "DPD" on JSON config file).
         DPD: block is
-        
+
             type state_t is (Sreset, Swaiting, Sprocessing, Ssending);
-            signal debugCurrentState, debugnextState: state_t;
+            signal currentState: state_t;
             
         begin
 
-            DependantInjectorProcess: process(Clock, Reset)
+            DependantInjectorProcess: process(Clock)
 
                 variable flitCounter: integer := 0;
                 variable processingCounter: integer := 0;
@@ -149,8 +149,10 @@ begin
                 variable currentTargetPE: integer := 0;
                 variable burstCounter: integer := 0;
 
-                --type state_t is (Sreset, Swaiting, Sprocessing, Ssending);
-                variable nextState, currentState: state_t;
+                -- RNG (Used by the Uniform function)
+                variable RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
+                variable RNGSeed2 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed2");
+                variable randomNumber : real;
 
             begin
 
@@ -158,170 +160,170 @@ begin
 
                     if Reset = '1' then
 
-                        currentState := Sreset;
+                        currentState <= Sreset;
 
                     else
 
-                        currentState := nextState;
+                        -- Sets default values
+                        if currentState = Sreset then
 
-                    end if;
-                    
-                    debugCurrentState <= currentState;
-                    debugNextState <= nextState;
+                            OutputBufferWriteRequest <= '0';
+                            DataOutAV <= '0';
 
-                    -- Sets default values
-                    if currentState = Sreset then
+                            firstFlitOutTimestamp := (others=>'0');
+                            amountOfMessagesSent := (others=>'0');
 
-                        outputBufferWriteRequest <= '0';
-                        dataOutAV <= '0';
-
-                        firstFlitOutTimestamp := (others=>'0');
-                        amountOfMessagesSent := (others=>'0');
-
-                        currentTargetPE := 0;
-                        flitCounter := 0;
-                        burstCounter := 0;
-
-                        -- Generates new (real) random number between 0 and 1
-                        RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
-
-                        nextState := Swaiting;
-
-                    -- Waits for a message to be received
-                    elsif currentState = Swaiting then
-
-                        -- Checks for a new message
-                        if Semaphore > 0 then
-
-                            -- A new message was received, goes into processing state and decreases Semaphore
-                            Semaphore <= decr(Semaphore, UINT32MaxValue, 0);
-                            processingCounter := 0;
-                            nextState := Sprocessing;
-
-                        -- No new message was received in the last clock period
-                        else
-
-                            -- Waits for a new message to be received
-                            nextState := Swaiting;
-
-                        end if;
-
-                    -- Idle for AverageProcessingTimeInClockPulses, and then send a message burst
-                    elsif currentState = Sprocessing then
-
-                        -- (Constant value is AverageProcessingTimeInClockPulses - 1 to account for the cycle wasted in Swaiting after a message was received) 
-                        if processingCounter = AverageProcessingTimeInClockPulses - 1 then
-
-                            -- Done idling, will begin to send message next cycle
+                            currentTargetPE := 0;
                             flitCounter := 0;
-                            nextState := Ssending;
+                            burstCounter := 0;
 
-                        else
+                            -- Generates new (real) random number between 0 and 1
+                            Uniform(RNGSeed1, RNGSeed2, RandomNumber);
+                            --randomNumber <= Uniform(RNGSeed1, RNGSeed2);
+                            --RNGSeed1 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed1)));
+                            --RNGSeed2 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed2)));
 
-                            -- Still not done idling, will idle next state again
-                            processingCounter := processingCounter + 1;
-                            nextState := Sprocessing;
+                            currentState <= Swaiting;
 
-                        end if;
+                        -- Waits for a message to be received
+                        elsif currentState = Swaiting then
 
-                    -- Sends a flit to output buffer
-                    elsif currentState = Ssending then
+                            -- Checks for a new message
+                            if semaphore > 0 then
 
-                        -- Sends a flit to buffer
-                        if outputBufferSlotAvailable = '1' then
+                                -- A new message was received, goes into processing state and decreases Semaphore
+                                Semaphore <= decr(Semaphore, UINT32MaxValue, 0);
+                                processingCounter := 0;
+                                currentState <= Sprocessing;
 
-                            -- Decides what flit to send (Header or Payload)
-                            if flitCounter < HeaderSize then
+                            -- No new message was received in the last clock period
+                            else
 
-                                -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
-                                if flitCounter = 0 then
+                                -- Waits for a new message to be received
+                                currentState <= Swaiting;
 
-                                    firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
+                            end if;
+
+                        -- Idle for AverageProcessingTimeInClockPulses, and then send a message burst
+                        elsif currentState = Sprocessing then
+
+                            -- (Constant value is AverageProcessingTimeInClockPulses - 1 to account for the cycle wasted in Swaiting after a message was received) 
+                            if processingCounter = AverageProcessingTimeInClockPulses - 1 then
+
+                                -- Done idling, will begin to send message next cycle
+                                flitCounter := 0;
+                                currentState <= Ssending;
+
+                            else
+
+                                -- Still not done idling, will idle next state again
+                                processingCounter := processingCounter + 1;
+                                currentState <= Sprocessing;
+
+                            end if;
+
+                        -- Sends a flit to output buffer
+                        elsif currentState = Ssending then
+
+                            -- Sends a flit to buffer
+                            if OutputBufferSlotAvailable = '1' then
+
+                                -- Decides what flit to send (Header or Payload)
+                                if flitCounter < HeaderSize then
+
+                                    -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
+                                    if flitCounter = 0 then
+
+                                        firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
+
+                                    end if;
+
+                                    -- A Header flit will be sent
+                                    flitTemp := HeaderFlits(currentTargetPE, flitCounter);
+
+                                -- Not a header flit
+                                else
+
+                                    -- A Payload flit will be sent
+                                    flitTemp := PayloadFlits(currentTargetPE, flitCounter - HeaderSize);
 
                                 end if;
 
-                                -- A Header flit will be sent
-                                flitTemp := HeaderFlits(currentTargetPE, flitCounter);
+                                -- Replaces real time flags with respective value
+                                if flitTemp = timestampFlag then
 
-                            -- Not a header flit
-                            else
+                                    flitTemp := firstFlitOutTimestamp;
 
-                                -- A Payload flit will be sent
-                                flitTemp := PayloadFlits(currentTargetPE, flitCounter - HeaderSize);
+                                elsif flitTemp = amountOfMessagesSentFlag then
 
-                            end if;
+                                    flitTemp := amountOfMessagesSent;
 
-                            -- Replaces real time flags with respective value
-                            if flitTemp = timestampFlag then
+                                end if;
 
-                                flitTemp := firstFlitOutTimestamp;
+                                -- Outbound data bus receives the flit to be sent
+                                DataOut <= flitTemp;
+                                DataOutAV <= '1';
+                                OutputBufferWriteRequest <= '1';
 
-                            elsif flitTemp = amountOfMessagesSentFlag then
+                                -- Increments flits sent counter
+                                flitCounter := flitCounter + 1;
 
-                                flitTemp := amountOfMessagesSent;
+                                -- Decides whether to send another flit or idle to maintain injection rate
+                                if flitCounter = TargetMessageSizeArray(currentTargetPE) then
 
-                            end if;
+                                    -- Message has been sent, will send next message in burst
+                                    flitCounter := 0;
+                                    amountOfMessagesSent := amountOfMessagesSent + 1;
+                                    burstCounter := burstCounter + 1;
 
-                            -- Outbound data bus receives the flit to be sent
-                            dataOut <= flitTemp;
-                            dataOutAV <= '1';
-                            outputBufferWriteRequest <= '1';
+                                    -- Determines if burst has ended
+                                    if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
 
-                            -- Increments flits sent counter
-                            flitCounter := flitCounter + 1;
+                                        -- Bust has ended, will wait for a new message to send another burst
+                                        burstCounter := 0;
+                                        currentState <= Swaiting;
 
-                            -- Decides whether to send another flit or idle to maintain injection rate
-                            if flitCounter = TargetMessageSizeArray(currentTargetPE) then
+                                        -- Determines next target PE
+                                        if FlowType = "RND" then
 
-                                -- Message has been sent, will send next message in burst
-                                flitCounter := 0;
-                                amountOfMessagesSent := amountOfMessagesSent + 1;
-                                burstCounter := burstCounter + 1;
-                                --nextState := Ssending;
+                                            -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
+                                            currentTargetPE := integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
 
-                                -- Determines if burst has ended
-                                if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
+                                            -- Generates a new random number
+                                            Uniform(RNGSeed1, RNGSeed2, RandomNumber);
+                                            --randomNumber <= Uniform(RNGSeed1, RNGSeed2);
+                                            --RNGSeed1 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed1)));
+                                            --RNGSeed2 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed2)));
+                                            
+                                        elsif FlowType = "DTM" then
 
-                                    -- Bust has ended, will wait for a new message to send another burst
-                                    burstCounter := 0;
-                                    nextState := Swaiting;
+                                            -- Next message will be sent to next sequential target as defined on TargetPEsArray
+                                            currenttargetPE := incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
 
-                                    -- Determines next target PE
-                                    if FlowType = "RND" then
+                                        end if;
 
-                                        -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                        currentTargetPE := integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
+                                    else
 
-                                        -- Generates a new random number
-                                        RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
-                                        
-                                    elsif FlowType = "DTM" then
-
-                                        -- Next message will be sent to next sequential target as defined on TargetPEsArray
-                                        currenttargetPE := incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+                                        -- Burst has not ended, will begin to send another message next state
+                                        currentState <= Ssending;
 
                                     end if;
 
                                 else
 
-                                    -- Burst has not ended, will begin to send another message next state
-                                    nextState := Ssending;
+                                    -- Message has not ended, wil send another flit next state
+                                    currentState <= Ssending;
 
                                 end if;
 
-                            else
+                            else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
 
-                                -- Message has not ended, wil send another flit next state
-                                nextState := Ssending;
+                                -- Buffer not available, will try again next state
+                                currentState <= Ssending;
 
+                                report "No available slot on output buffer at injector ID:" & integer'image(PEPOS) severity warning;
+                                
                             end if;
-
-                        else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
-
-                            -- Buffer not available, will try again next state
-                            nextState := Ssending;
-
-                            -- TODO: Assert message signaling unavailable buffer
 
                         end if;
 
@@ -336,17 +338,17 @@ begin
     end generate DependantInjector;
 
 
-    FixedRateInjector: if FlowType = "FXD" generate
+    FixedRateInjector: if (InjectorType = "FXD") generate
 
-        -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
         FXD: block is
-        
-            type state_t is (Sreset, Ssending, Swaiting);
-            signal debugCurrentState, debugNextState: state_t;
+
+            type state_t is (Sreset, Swaiting, Ssending);
+            signal currentState: state_t;
 
         begin
 
-            FixedRateInjetorProcess: process(Clock, Reset)
+            -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
+            FixedRateInjetorProcess: process(Clock)
 
                 variable injectionCounter: integer := 0;
                 variable injectionPeriod: integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
@@ -356,161 +358,162 @@ begin
                 variable currentTargetPE: integer := 0;
                 variable burstCounter: integer := 0;
 
-                -- type state_t is (Sreset, Ssending, Swaiting);
-                variable nextState, currentState: state_t;
+                -- RNG (Used by the Uniform function)
+                variable RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
+                variable RNGSeed2 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed2");
+                variable randomNumber : real;
 
             begin
 
-                if rising_edge(clock) then
+                if rising_edge(Clock) then
 
                     if Reset = '1' then
 
-                        currentState := Sreset;
+                        currentState <= Sreset;
 
                     else
 
-                        currentState := nextState;
+                        if currentState = Sreset then
 
-                    end if;
+                            injectionCounter := 0;
+                            injectionPeriod := ( (TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
 
-                    debugNextState <= nextState;
-                    debugCurrentState <= debugCurrentState;
+                            OutputBufferWriteRequest <= '0';
+                            DataOutAV <= '0';
 
-                    -- Sets default values
-                    if currentState = Sreset then
+                            firstFlitOutTimestamp := (others=>'0');
+                            amountOfMessagesSent := (others=>'0');
 
-                        injectionCounter := 0;
-                        injectionPeriod := ( (TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
+                            currentTargetPE := 0;
+                            burstCounter := 0;
 
-                        outputBufferWriteRequest <= '0';
-                        dataOutAV <= '0';
+                            -- Generates a new random number
+                            Uniform(RNGSeed1, RNGSeed2, RandomNumber);
 
-                        firstFlitOutTimestamp := (others=>'0');
-                        amountOfMessagesSent := (others=>'0');
+                            currentState <= Ssending;
 
-                        currentTargetPE := 0;
-                        burstCounter := 0;
+                        -- Sends a flit to output buffer
+                        elsif currentState = Ssending then
 
-                        -- Generates a new random number
-                        RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
+                            -- Sends a flit to buffer
+                            if OutputBufferSlotAvailable = '1' then
 
-                        nextState := Ssending;
+                                -- Decides what flit to send (Header or Payload)
+                                if injectionCounter < HeaderSize then
 
-                    -- Sends a flit to output buffer
-                    elsif currentState = Ssending then
+                                    -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
+                                    if injectionCounter = 0 then
 
-                        -- Sends a flit to buffer
-                        if outputBufferSlotAvailable = '1' then
-
-                            -- Decides what flit to send (Header or Payload)
-                            if injectionCounter < HeaderSize then
-
-                                -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
-                                if injectionCounter = 0 then
-
-                                    firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
-
-                                end if;
-
-                                -- A Header flit will be sent
-                                flitTemp := HeaderFlits(currentTargetPE, injectionCounter);
-
-                            -- Not a header flit
-                            else
-
-                                -- A Payload flit will be sent
-                                flitTemp := PayloadFlits(currentTargetPE, injectionCounter - HeaderSize);
-
-                            end if;
-
-                            -- Replaces real time flags with respective value
-                            if flitTemp = timestampFlag then
-
-                                flitTemp := firstFlitOutTimestamp;
-
-                            elsif flitTemp = amountOfMessagesSentFlag then
-
-                                flitTemp := amountOfMessagesSent;
-
-                            end if;
-
-                            -- Outbound data bus receives the flit to be sent
-                            dataOut <= flitTemp;
-                            dataOutAV <= '1';
-                            outputBufferWriteRequest <= '1';
-
-                            -- Increments flits sent counter
-                            injectionCounter := injectionCounter + 1;
-                            
-                            -- Decides whether to send another flit or idle to maintain injection rate
-                            if injectionCounter = TargetMessageSizeArray(currentTargetPE) then
-
-                                -- Message has been sent, will idle next state
-                                injectionCounter := 0;
-                                amountOfMessagesSent := amountOfMessagesSent + 1;
-                                burstCounter := burstCounter + 1;
-                                nextState := Swaiting;
-
-                                -- Determines if burst has ended
-                                if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
-
-                                    burstCounter := 0;
-
-                                    -- Determines next target PE
-                                    if FlowType = "RND" then
-
-                                        -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                        currentTargetPE := integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
-
-                                        -- Generates a new random number
-                                        RandomNumber <= Uniform(RNGSeed1, RNGSeed2);
-
-                                    elsif FlowType = "DTM" then
-
-                                        -- Next message will be sent to next sequential target as defined on TargetPEsArray
-                                        currentTargetPE := incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+                                        firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
+                                        amountOfMessagesSent := amountOfMessagesSent + 1;
 
                                     end if;
 
+                                    -- A Header flit will be sent
+                                    flitTemp := HeaderFlits(currentTargetPE, injectionCounter);
+
+                                -- Not a header flit
+                                else
+
+                                    -- A Payload flit will be sent
+                                    flitTemp := PayloadFlits(currentTargetPE, injectionCounter - HeaderSize);
+
                                 end if;
+
+                                -- Replaces real time flags with respective value
+                                if flitTemp = timestampFlag then
+
+                                    flitTemp := firstFlitOutTimestamp;
+
+                                elsif flitTemp = amountOfMessagesSentFlag then
+
+                                    flitTemp := amountOfMessagesSent;
+
+                                end if;
+
+                                -- Outbound data bus receives the flit to be sent
+                                DataOut <= flitTemp;
+                                DataOutAV <= '1';
+                                OutputBufferWriteRequest <= '1';
+
+                                -- Increments flits sent counter
+                                injectionCounter := injectionCounter + 1;
+                                
+                                -- Decides whether to send another flit or idle to maintain injection rate
+                                if injectionCounter = TargetMessageSizeArray(currentTargetPE) then
+
+                                    -- Message has been sent, will idle next state
+                                    injectionCounter := 0;
+                                    burstCounter := burstCounter + 1;
+                                    currentState <= Swaiting;
+
+                                    -- Determines if burst has ended
+                                    if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
+
+                                        burstCounter := 0;
+
+                                        -- Determines next target PE
+                                        if FlowType = "RND" then
+
+                                            -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
+                                            currentTargetPE := integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
+
+                                            -- Generates a new random number
+                                            Uniform(RNGSeed1, RNGSeed2, RandomNumber);
+
+
+                                            --randomNumber <= Uniform(RNGSeed1, RNGSeed2);
+                                            --RNGSeed1 <= integer(trunc( (Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed1) ) * real(RNGSeed1) mod real(RNGSeed1))) + 1;
+                                            --RNGSeed2 <= integer(trunc( (Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed2) ) * real(RNGSeed2) mod real(RNGSeed2))) + 1;
+
+                                        elsif FlowType = "DTM" then
+
+                                            -- Next message will be sent to next sequential target as defined on TargetPEsArray
+                                            currentTargetPE := incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+
+                                        end if;
+
+                                    end if;
+
+                                else
+
+                                    -- Message has not ended, wil send another flit next state
+                                    currentState <= Ssending;
+
+                                end if;
+
+                            else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
+
+                                report "No available slot on output buffer at injector ID: " & integer'image(PEPOS) severity warning;
+                                currentState <= Ssending;
+
+                            end if;
+                            
+                         -- Idles to maintain defined injection rate
+                        elsif currentState = Swaiting then
+
+                            -- Signals DataOut isn't valid
+                            DataOutAV <= '0';
+                            OutputBufferWriteRequest <= '0';
+
+                            -- Increments flit counter
+                            injectionCounter := injectionCounter + 1;
+
+                            -- Decides whether to send another flit or idle to maintain injection rate
+                            if injectionCounter = injectionPeriod then
+
+                                injectionCounter := 0;
+                                currentState <= Ssending;
+
+                                -- Gets new injection period value (according to new message)
+                                injectionPeriod := ( (TargetMessageSizeArray(currentTargetPE) * 100) / InjectionRate) - TargetMessageSizeArray(currentTargetPE);
 
                             else
 
-                                -- Message has not ended, wil send another flit next state
-                                nextState := Ssending;
-
+                                currentState <= Swaiting;
+                                
                             end if;
 
-                        else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
-
-                            -- TODO: Assert message signaling unavailable buffer
-                            nextState := Ssending;
-
-                        end if;
-                        
-                     -- Idles to maintain defined injection rate
-                    elsif currentState = Swaiting then
-
-                        -- Signals DataOut isn't valid
-                        dataOutAV <= '0';
-                        outputBufferWriteRequest <= '0';
-
-                        -- Increments flit counter
-                        injectionCounter := injectionCounter + 1;
-
-                        -- Decides whether to send another flit or idle to maintain injection rate
-                        if injectionCounter = injectionPeriod then
-
-                            injectionCounter := 0;
-                            nextState := Ssending;
-
-                            -- Gets new injection period value (according to new message)
-                            injectionPeriod := ( (TargetMessageSizeArray(currentTargetPE) * 100) / InjectionRate) - TargetMessageSizeArray(currentTargetPE);
-
-                        else
-
-                            nextState := Swaiting;
-                            
                         end if;
 
                     end if;
@@ -539,20 +542,20 @@ begin
 
         begin
 
-            -- Read request signal will be set to '1' unless Reset = '1'
-            inputBufferReadRequest <= '1';
+            -- Read request signal will always be set to '1' unless Reset = '1'
+            InputBufferReadRequest <= '1';
 
             if Reset = '1' then
 
                 -- Set default values and disables buffer read request
-                inputBufferReadRequest <= '0';
+                InputBufferReadRequest <= '0';
                 flitCounter := 0;
                 messageCounter <= 0;
 
             elsif rising_edge(Clock) then
                 
-                -- Checks for a new flit on 
-                if dataInAV = '1' then
+                -- Checks for a new flit available on input buffer
+                if DataInAV = '1' then
 
                     -- Checks for an ADDR flit (Assumes header = [ADDR, SIZE])
                     if flitCounter = 0 then
@@ -564,7 +567,7 @@ begin
                     -- Checks for a SIZE flit (Assumes header = [ADDR, SIZE])
                     if flitCounter = 1 then
 
-                        currentMessageSize := to_integer(unsigned(dataIn));
+                        currentMessageSize := to_integer(unsigned(DataIn));
 
                     end if;
 
@@ -579,7 +582,7 @@ begin
                         -- Signals a message has been received to DPD injector and updates counters
                         flitCounter := 0;
                         messageCounter <= incr(messageCounter, UINT32MaxValue, 0);
-                        Semaphore <= incr(Semaphore, UINT32MaxValue, 0);
+                        semaphore <= incr(Semaphore, UINT32MaxValue, 0);
 
                     end if;
 
