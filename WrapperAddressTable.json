@@ -1,0 +1,21 @@
+{
+  "HasNoWrapperFlag": 511,
+  "HasWrapper":[
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false
+  ],
+  "WrapperAddresses":[
+    1,
+    1,
+    1,
+    511,
+    511,
+    511,
+    511
+  ]
+}
