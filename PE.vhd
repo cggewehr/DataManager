@@ -26,8 +26,10 @@ entity PE is
 
     generic(
         -- Path to JSON file containing PE and APP parameters
-        PEConfigFile        : string := "C:\Projetos Vivado\Injetor\PESample.json";
-        InjectorConfigFile  : string := "C:\Projetos Vivado\Injetor\InjectorSample.json"
+        --PEConfigFile        : string := "C:\Projetos Vivado\Injetor\PESample.json";
+        PEConfigFile        : string := "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\PESample.json";
+        --InjectorConfigFile  : string := "C:\Projetos Vivado\Injetor\InjectorSample.json"
+        InjectorConfigFile  : string := "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\InjectorSample.json"
     );
     port(
 

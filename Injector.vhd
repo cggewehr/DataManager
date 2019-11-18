@@ -345,18 +345,23 @@ begin
             type state_t is (Sreset, Swaiting, Ssending);
             signal currentState: state_t;
 
+            signal currentTargetPE: integer := 0;
+            signal injectionCounter: integer := 0;
+            signal injectionPeriod: integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
+            signal burstCounter: integer := 0;
+
         begin
 
             -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
             FixedRateInjetorProcess: process(Clock)
 
-                variable injectionCounter: integer := 0;
-                variable injectionPeriod: integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
+                --variable injectionCounter: integer := 0;
+                --variable injectionPeriod: integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
                 variable flitTemp: DataWidth_t := (others=>'0');
                 variable firstFlitOutTimestamp: DataWidth_t := (others=>'0');
                 variable amountOfMessagesSent: DataWidth_t := (others=>'0');
-                variable currentTargetPE: integer := 0;
-                variable burstCounter: integer := 0;
+                --variable currentTargetPE: integer := 0;
+                --variable burstCounter: integer := 0;
 
                 -- RNG (Used by the Uniform function)
                 variable RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
@@ -375,8 +380,8 @@ begin
 
                         if currentState = Sreset then
 
-                            injectionCounter := 0;
-                            injectionPeriod := ( (TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
+                            injectionCounter <= 0;
+                            injectionPeriod <= ( (TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
 
                             OutputBufferWriteRequest <= '0';
                             DataOutAV <= '0';
@@ -384,8 +389,8 @@ begin
                             firstFlitOutTimestamp := (others=>'0');
                             amountOfMessagesSent := (others=>'0');
 
-                            currentTargetPE := 0;
-                            burstCounter := 0;
+                            currentTargetPE <= 0;
+                            burstCounter <= 0;
 
                             -- Generates a new random number
                             Uniform(RNGSeed1, RNGSeed2, RandomNumber);
@@ -398,16 +403,16 @@ begin
                             -- Sends a flit to buffer
                             if OutputBufferSlotAvailable = '1' then
 
+                                -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
+                                if injectionCounter = 0 then
+
+                                    firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
+                                    amountOfMessagesSent := amountOfMessagesSent + 1;
+
+                                end if;
+
                                 -- Decides what flit to send (Header or Payload)
                                 if injectionCounter < HeaderSize then
-
-                                    -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
-                                    if injectionCounter = 0 then
-
-                                        firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
-                                        amountOfMessagesSent := amountOfMessagesSent + 1;
-
-                                    end if;
 
                                     -- A Header flit will be sent
                                     flitTemp := HeaderFlits(currentTargetPE, injectionCounter);
@@ -437,26 +442,26 @@ begin
                                 OutputBufferWriteRequest <= '1';
 
                                 -- Increments flits sent counter
-                                injectionCounter := injectionCounter + 1;
+                                injectionCounter <= injectionCounter + 1;
                                 
-                                -- Decides whether to send another flit or idle to maintain injection rate
-                                if injectionCounter = TargetMessageSizeArray(currentTargetPE) then
+                                -- Decides whether to send another flit or idle to maintain injection rate (Checks if message has ended)
+                                if injectionCounter = (TargetMessageSizeArray(currentTargetPE) + 1) then
 
                                     -- Message has been sent, will idle next state
-                                    injectionCounter := 0;
-                                    burstCounter := burstCounter + 1;
+                                    injectionCounter <= 0;
+                                    burstCounter <= burstCounter + 1;
                                     currentState <= Swaiting;
 
                                     -- Determines if burst has ended
-                                    if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) then
+                                    if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) + 1 then
 
-                                        burstCounter := 0;
+                                        burstCounter <= 0;
 
                                         -- Determines next target PE
                                         if FlowType = "RND" then
 
                                             -- Uses Uniform procedure from ieee.math_real. currentTargetPE gets a value between 0 and (AmountOfTargetPEs - 1)
-                                            currentTargetPE := integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
+                                            currentTargetPE <= integer(trunc(RandomNumber * real(AmountOfTargetPEs + 1))) mod AmountOfTargetPEs;
 
                                             -- Generates a new random number
                                             Uniform(RNGSeed1, RNGSeed2, RandomNumber);
@@ -469,7 +474,7 @@ begin
                                         elsif FlowType = "DTM" then
 
                                             -- Next message will be sent to next sequential target as defined on TargetPEsArray
-                                            currentTargetPE := incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
+                                            currentTargetPE <= incr(currentTargetPE, AmountOfTargetPEs - 1, 0);
 
                                         end if;
 
@@ -477,7 +482,7 @@ begin
 
                                 else
 
-                                    -- Message has not ended, wil send another flit next state
+                                    -- Message has not ended, will send another flit next state
                                     currentState <= Ssending;
 
                                 end if;
@@ -497,16 +502,16 @@ begin
                             OutputBufferWriteRequest <= '0';
 
                             -- Increments flit counter
-                            injectionCounter := injectionCounter + 1;
+                            injectionCounter <= injectionCounter + 1;
 
                             -- Decides whether to send another flit or idle to maintain injection rate
-                            if injectionCounter = injectionPeriod then
+                            if injectionCounter = injectionPeriod + 1 then
 
-                                injectionCounter := 0;
+                                injectionCounter <= 0;
                                 currentState <= Ssending;
 
                                 -- Gets new injection period value (according to new message)
-                                injectionPeriod := ( (TargetMessageSizeArray(currentTargetPE) * 100) / InjectionRate) - TargetMessageSizeArray(currentTargetPE);
+                                injectionPeriod <= ( (TargetMessageSizeArray(currentTargetPE) * 100) / InjectionRate) - TargetMessageSizeArray(currentTargetPE);
 
                             else
 
