@@ -26,6 +26,7 @@ package PE_PKG is
     type TargetPayloadSizeArray_t is array(integer range <>) of integer;
     type TargetMessageSizeArray_t is array(integer range <>) of integer;
     type AmountOfMessagesInBurstArray_t is array(integer range <>) of integer;
+    type WrapperAddressTableArray_t is array(integer range <>) of integer;
     type HeaderFlits_t is array(integer range <>, integer range <>) of DataWidth_t;
     type PayloadFlits_t is array (integer range <>, integer range <>) of DataWidth_t;
 
@@ -36,12 +37,13 @@ package PE_PKG is
     function FillTargetPayloadSizeArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return TargetPayloadSizeArray_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray: TargetPayloadSizeArray_t ; HeaderSize: integer) return TargetMessageSizeArray_t;
     function FillAmountOfMessagesInBurstArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return AmountOfMessagesInBurstArray_t;
-    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t;
+    function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; AmountOfTargetPEs: integer) return WrapperAddressTableArray_t;
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressTable: WrapperAddressTableArray_t) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray: TargetPayloadSizeArray_t) return integer;
 
     -- Misc functions
-    procedure UNIFORM (SEED1, SEED2 : inout POSITIVE; X : out REAL);
+    procedure UNIFORM (SEED1, SEED2 : inout POSITIVE; X : out REAL); -- Used for random number generation
     function incr(value: integer ; maxValue: in integer ; minValue: in integer) return integer;
     function decr(value: integer ; maxValue: in integer ; minValue: in integer) return integer;
 
@@ -112,7 +114,7 @@ package body PE_PKG is
     begin
 
         FillTargetPayloadSizeLoop: for i in 0 to (AmountOfTargetPEs - 1) loop
-            TargetPayloadSizeArray(i) := jsonGetInteger(InjectorJSONConfig, ( "TargetPayloadSize/" & integer'image(i) ) );
+            TargetPayloadSizeArray(i) := jsonGetInteger(InjectorJSONConfig, ("TargetPayloadSize/" & integer'image(i)));
         end loop FillTargetPayloadSizeLoop;
 
         return TargetPayloadSizeArray;
@@ -122,7 +124,7 @@ package body PE_PKG is
 
     -- Fills array of target message size (Payload + Header) for each target PE
     function FillTargetMessageSizeArray(TargetPayloadSizeArray: TargetPayloadSizeArray_t ; HeaderSize: integer) return TargetMessageSizeArray_t is
-        variable TargetMessageSizeArray : TargetMessageSizeArray_t(TargetPayloadSizeArray'range);
+        variable TargetMessageSizeArray: TargetMessageSizeArray_t(TargetPayloadSizeArray'range);
     begin
 
         FillTargetMessageSizeLoop : for i in TargetPayloadSizeArray'range loop
@@ -136,11 +138,11 @@ package body PE_PKG is
 
     -- Fills array of amount of messages in a burst for each target PE
     function FillAmountOfMessagesInBurstArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return AmountOfMessagesInBurstArray_t is
-        variable AmountOfMessagesInBurstArray : AmountOfMessagesInBurstArray_t(0 to AmountOfTargetPEs - 1);
+        variable AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t(0 to AmountOfTargetPEs - 1);
     begin
 
         FillAmountOfMessagesInBurstArrayLoop : for i in 0 to (AmountOfTargetPEs - 1) loop
-            AmountOfMessagesInBurstArray(i) := jsonGetInteger(InjectorJSONConfig, ( "AmountOfMessagesInBurst/" & integer'image(i) ) );
+            AmountOfMessagesInBurstArray(i) := jsonGetInteger(InjectorJSONConfig, ("AmountOfMessagesInBurst/" & integer'image(i)));
         end loop;
         
         return AmountOfMessagesInBurstArray;        
@@ -148,11 +150,25 @@ package body PE_PKG is
     end function FillAmountOfMessagesInBurstArray;
 
 
+    -- Fills array containing address of associated wrapper for each global address (To find the address of a global address's associated wrapper)
+    function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; AmountOfTargetPEs: integer) return WrapperAddressTableArray_t is
+        variable WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1);
+    begin
+
+        FillWrapperAddressTableArrayLoop: for i in 0 to (AmountOfTargetPEs - 1) loop
+            WrapperAddressTableArray(i) := jsonGetInteger(WrapperAddressTableJSON, ("WrapperAddresses/" & integer'image(i)));
+        end loop FillWrapperAddressTableArrayLoop;
+
+        return WrapperAddressTableArray;
+
+    end function FillWrapperAddressTableArray;
+
+
     -- Builds header for each target PE
-    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t is
-        variable Headers : HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
-        variable headerFlitString : string(1 to 4);
-        variable timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressTable: WrapperAddressTableArray_t) return HeaderFlits_t is
+        variable Headers: HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
+        variable headerFlitString: string(1 to 4);
+        variable timestampFlag: integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
     begin
 
     	report "Compiling header flits" severity note;
@@ -163,8 +179,8 @@ package body PE_PKG is
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
-                --                                                                    Translates loop iterator to PE ID
-                headerFlitString := jsonGetString(InjectorJSONConfig, ( "Headers/" & "Header" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit) ) );
+                --                                                                               Translates loop iterator to PE ID
+                headerFlitString := jsonGetString(InjectorJSONConfig, ( "Headers/" & "Header" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit)));
 
                 -- A header flit can be : "ADDR" (Address of target PE in network)
                 --                        "SIZE" (Size of payload in this message)
@@ -173,7 +189,11 @@ package body PE_PKG is
 
                 if headerFlitString = "ADDR" then 
 
-                    Headers(target, flit) := std_logic_vector(to_unsigned(TargetPEsArray(target), DataWidth));
+                    -- Global address @ least significative bits
+                    Headers(target, flit)((DataWidth/2) - 1 downto 0) := std_logic_vector(to_unsigned(TargetPEsArray(target), DataWidth/2));
+
+                    -- Wrapper address @ most significative bits
+                    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := std_logic_vector(to_unsigned(WrapperAddressTable(TargetPEsArray(target))), DataWidth/2);
 
                 elsif headerFlitString = "SIZE" then
 
@@ -191,7 +211,6 @@ package body PE_PKG is
 
                 report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
 
-                                
             end loop BuildFlitLoop;
 
         end loop BuildHeaderLoop;

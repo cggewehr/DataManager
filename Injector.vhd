@@ -28,7 +28,8 @@ entity Injector is
 
 	generic (
         PEConfigFile          : string := "~\PESample.json";
-        InjectorConfigFile    : string := "~\InjectorSample.json"
+        InjectorConfigFile    : string := "~\InjectorSample.json";
+        WrapperAddressTable   : string := "~\WrapperAddressTable.json"
 	);
 
 	port (
@@ -57,6 +58,7 @@ architecture RTL of Injector is
 
     -- JSON configuration file
     constant InjectorJSONConfig: T_JSON := jsonLoad(InjectorConfigFile);
+    constant WrapperAddressTableJSON: T_JSON := jsonLoad(WrapperAddressTable);
 
     -- Injector type ("FXD" or "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
@@ -81,6 +83,7 @@ architecture RTL of Injector is
     constant AmountOfTargetPEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
     constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1) := FillWrapperAddressTableArray(WrapperAddressTable, AmountOfTargetPEs);
 
     -- Message parameters
     constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
