@@ -62,12 +62,12 @@ begin
  
     -- Instantiate the Unit Under Test (UUT)
     uut: entity work.PE 
-        --generic map(
+        generic map(
             --PEConfigFile => "C:\Projetos Vivado\Injetor\PESample.json",
-            --PEConfigFile => "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\PESample.json",
+            PEConfigFile => "C:\Users\CarlosGabriel\Documents\GitKraken\DataManager\PESample.json",
             --InjectorConfigFile => "C:\Projetos Vivado\Injetor\InjectorSample.json"
-            --InjectorConfigFile => "C:\Users\CarlosGabriel\Documents\Projeto de Processadores\DataManager\InjectorSample.json"
-        --)
+            InjectorConfigFile => "C:\Users\CarlosGabriel\Documents\GitKraken\DataManager\InjectorSample.json"
+        )
         port map (
 
             -- Basic

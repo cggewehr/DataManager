@@ -445,7 +445,7 @@ begin
                                 injectionCounter <= injectionCounter + 1;
                                 
                                 -- Decides whether to send another flit or idle to maintain injection rate (Checks if message has ended)
-                                if injectionCounter = (TargetMessageSizeArray(currentTargetPE) + 1) then
+                                if (injectionCounter + 1) = TargetMessageSizeArray(currentTargetPE) then
 
                                     -- Message has been sent, will idle next state
                                     injectionCounter <= 0;
@@ -453,7 +453,7 @@ begin
                                     currentState <= Swaiting;
 
                                     -- Determines if burst has ended
-                                    if burstCounter = (AmountOfMessagesInBurstArray(currentTargetPE)) + 1 then
+                                    if (burstCounter + 1) = AmountOfMessagesInBurstArray(currentTargetPE) then
 
                                         burstCounter <= 0;
 

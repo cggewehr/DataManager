@@ -1,7 +1,7 @@
 {
   "InjectorType": "FXD",
   "FlowType": "RND",
-  "InjectionRate": 50,
+  "InjectionRate": 80,
   "PEPos": 22,
   "APPID": 9,
   "ThreadID": 47,
