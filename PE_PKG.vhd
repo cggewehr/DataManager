@@ -13,9 +13,9 @@ library work;
 package PE_PKG is
 
     -- Common constants (used by all project files)
-    constant DataWidth: integer := TAM_FLIT;
+    constant DataWidth: integer := TAM_FLIT; -- TAM_FLIT is declared in HeMPS_defaults, defaulted to 32
     subtype DataWidth_t is std_logic_vector(DataWidth - 1 downto 0);
-    constant UINT32MaxValue: integer :=  2147483646;
+    constant UINT32MaxValue: integer := 2147483646; -- Xilinx for some reason only allows an integer to go up to this value, even if range is defined as 0 to 4294967295
     --constant UINT32MaxValue: integer := 4294967295;
 
     -- Typedefs for injector parameters types
@@ -329,7 +329,7 @@ package body PE_PKG is
             z := z + 2147483562;
         end if;
 
-        x := real (z) * 4.656613e-10;
+        x := real(z) * 4.656613e-10;
 
     end procedure UNIFORM;
 
