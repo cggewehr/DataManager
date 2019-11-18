@@ -83,7 +83,7 @@ architecture RTL of Injector is
     constant AmountOfTargetPEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
     constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
     constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1) := FillWrapperAddressTableArray(WrapperAddressTable, AmountOfTargetPEs);
+    constant WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1) := FillWrapperAddressTableArray(WrapperAddressTableJSON, TargetPEsArray);
 
     -- Message parameters
     constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
@@ -91,7 +91,7 @@ architecture RTL of Injector is
     constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
     constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
-    constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray);
+    constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray, WrapperAddressTableArray);
 
     constant TargetMessageSizeArray : TargetMessageSizeArray_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
     --constant SourceMessageSizeArray : SourceMessageSizeArray_t := FillSourceMessageSizeArray(SourcePayloadSizeArray, HeaderSize);
@@ -450,11 +450,17 @@ begin
                                 -- Decides whether to send another flit or idle to maintain injection rate (Checks if message has ended)
                                 if (injectionCounter + 1) = TargetMessageSizeArray(currentTargetPE) then
 
-                                    -- Message has been sent, will idle next state
+                                    -- Message has been sent
                                     injectionCounter <= 0;
                                     burstCounter <= burstCounter + 1;
-                                    currentState <= Swaiting;
 
+                                    -- If injection rate = 100%, dont idle next state, else, do idle to maintain injection rate
+                                    if InjectionRate = 100 then
+                                    	currentState <= Ssending;
+                                    else
+                                    	currentState <= Swaiting;
+                                    end if; 
+    
                                     -- Determines if burst has ended
                                     if (burstCounter + 1) = AmountOfMessagesInBurstArray(currentTargetPE) then
 
@@ -468,11 +474,6 @@ begin
 
                                             -- Generates a new random number
                                             Uniform(RNGSeed1, RNGSeed2, RandomNumber);
-
-
-                                            --randomNumber <= Uniform(RNGSeed1, RNGSeed2);
-                                            --RNGSeed1 <= integer(trunc( (Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed1) ) * real(RNGSeed1) mod real(RNGSeed1))) + 1;
-                                            --RNGSeed2 <= integer(trunc( (Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed2) ) * real(RNGSeed2) mod real(RNGSeed2))) + 1;
 
                                         elsif FlowType = "DTM" then
 
@@ -492,7 +493,7 @@ begin
 
                             else -- outputBufferSlotAvailable = '0' (Cant write to buffer)
 
-                                report "No available slot on output buffer at injector ID: " & integer'image(PEPOS) severity warning;
+                                report "No available slot on output buffer at network address: " & integer'image(PEPOS) severity warning;
                                 currentState <= Ssending;
 
                             end if;

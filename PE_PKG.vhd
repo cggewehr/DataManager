@@ -37,8 +37,8 @@ package PE_PKG is
     function FillTargetPayloadSizeArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return TargetPayloadSizeArray_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray: TargetPayloadSizeArray_t ; HeaderSize: integer) return TargetMessageSizeArray_t;
     function FillAmountOfMessagesInBurstArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return AmountOfMessagesInBurstArray_t;
-    function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; AmountOfTargetPEs: integer) return WrapperAddressTableArray_t;
-    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressTable: WrapperAddressTableArray_t) return HeaderFlits_t;
+    function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t;
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressesArray: WrapperAddressTableArray_t) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray: TargetPayloadSizeArray_t) return integer;
 
@@ -151,12 +151,12 @@ package body PE_PKG is
 
 
     -- Fills array containing address of associated wrapper for each global address (To find the address of a global address's associated wrapper)
-    function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; AmountOfTargetPEs: integer) return WrapperAddressTableArray_t is
-        variable WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1);
+    function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t is
+        variable WrapperAddressTableArray: WrapperAddressTableArray_t(TargetPEsArray'range);
     begin
 
-        FillWrapperAddressTableArrayLoop: for i in 0 to (AmountOfTargetPEs - 1) loop
-            WrapperAddressTableArray(i) := jsonGetInteger(WrapperAddressTableJSON, ("WrapperAddresses/" & integer'image(i)));
+        FillWrapperAddressTableArrayLoop: for i in TargetPEsArray'range loop
+            WrapperAddressTableArray(i) := jsonGetInteger(WrapperAddressTableJSON, ("WrapperAddresses/" & integer'image(TargetPEsArray(i))));
         end loop FillWrapperAddressTableArrayLoop;
 
         return WrapperAddressTableArray;
@@ -165,7 +165,7 @@ package body PE_PKG is
 
 
     -- Builds header for each target PE
-    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressTable: WrapperAddressTableArray_t) return HeaderFlits_t is
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressesArray: WrapperAddressTableArray_t) return HeaderFlits_t is
         variable Headers: HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
         variable headerFlitString: string(1 to 4);
         variable timestampFlag: integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
@@ -193,7 +193,7 @@ package body PE_PKG is
                     Headers(target, flit)((DataWidth/2) - 1 downto 0) := std_logic_vector(to_unsigned(TargetPEsArray(target), DataWidth/2));
 
                     -- Wrapper address @ most significative bits
-                    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := std_logic_vector(to_unsigned(WrapperAddressTable(TargetPEsArray(target))), DataWidth/2);
+                    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := std_logic_vector(to_unsigned(WrapperAddressesArray(target), DataWidth/2));
 
                 elsif headerFlitString = "SIZE" then
 

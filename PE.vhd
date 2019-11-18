@@ -28,8 +28,9 @@ entity PE is
         -- Path to JSON file containing PE and APP parameters
         --PEConfigFile        : string := "C:\Projetos Vivado\Injetor\PESample.json";
         PEConfigFile        : string := "C:\Users\CarlosGabriel\Documents\GitKraken\DataManager\PESample.json";
-        --InjectorConfigFile  : string := "C:\Projetos Vivado\Injetor\InjectorSample.json"
-        InjectorConfigFile  : string := "C:\Users\CarlosGabriel\Documents\GitKraken\DataManager\InjectorSample.json"
+        --InjectorConfigFile  : string := "C:\Projetos Vivado\Injetor\InjectorSample.json";
+        InjectorConfigFile  : string := "C:\Users\CarlosGabriel\Documents\GitKraken\DataManager\InjectorSample.json";
+        WrapperAddressTable : string := "C:\Projetos Vivado\Injetor\WrapperAddressTable.json"
     );
     port(
 
@@ -194,7 +195,8 @@ begin
     Injector: entity work.Injector
         generic map(
             PEConfigFile => PEConfigFile,
-            InjectorConfigFile => InjectorConfigFile
+            InjectorConfigFile => InjectorConfigFile,
+            WrapperAddressTable => WrapperAddressTable
         )
         port map(
             

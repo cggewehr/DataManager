@@ -15,14 +15,19 @@
    </db_ref_list>
    <zoom_setting>
       <ZoomStartTime time="0fs"></ZoomStartTime>
-      <ZoomEndTime time="440500001fs"></ZoomEndTime>
-      <Cursor1Time time="345000000fs"></Cursor1Time>
+      <ZoomEndTime time="51000000001fs"></ZoomEndTime>
+      <Cursor1Time time="452000000fs"></Cursor1Time>
    </zoom_setting>
    <column_width_setting>
       <NameColumnWidth column_width="175"></NameColumnWidth>
-      <ValueColumnWidth column_width="114"></ValueColumnWidth>
+      <ValueColumnWidth column_width="110"></ValueColumnWidth>
    </column_width_setting>
-   <WVObjectSize size="74" />
+   <WVObjectSize size="75" />
+   <wave_markers>
+      <marker time="605000000" label="" />
+      <marker time="355000000" label="" />
+      <marker time="425000000" label="" />
+   </wave_markers>
    <wvobject fp_name="/PE_TB/uut/Clock" type="logic">
       <obj_property name="ElementShortName">Clock</obj_property>
       <obj_property name="ObjectShortName">Clock</obj_property>
@@ -284,10 +289,36 @@
       <obj_property name="ElementShortName">semaphore</obj_property>
       <obj_property name="ObjectShortName">semaphore</obj_property>
    </wvobject>
+   <wvobject fp_name="/PE_TB/uut/Injector/WrapperAddressTableArray" type="array">
+      <obj_property name="ElementShortName">WrapperAddressTableArray[0:1]</obj_property>
+      <obj_property name="ObjectShortName">WrapperAddressTableArray[0:1]</obj_property>
+   </wvobject>
    <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits" type="array">
       <obj_property name="ElementShortName">HeaderFlits[0:1,0:2][31:0]</obj_property>
       <obj_property name="ObjectShortName">HeaderFlits[0:1,0:2][31:0]</obj_property>
       <obj_property name="isExpanded"></obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+      <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits[0]" type="array">
+         <obj_property name="ElementShortName">[0,0:2][31:0]</obj_property>
+         <obj_property name="ObjectShortName">[0,0:2][31:0]</obj_property>
+         <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits[0,0]" type="array">
+            <obj_property name="ElementShortName">[0,0][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[0,0][31:0]</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+         </wvobject>
+         <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits[0,1]" type="array">
+            <obj_property name="ElementShortName">[0,1][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[0,1][31:0]</obj_property>
+         </wvobject>
+         <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits[0,2]" type="array">
+            <obj_property name="ElementShortName">[0,2][31:0]</obj_property>
+            <obj_property name="ObjectShortName">[0,2][31:0]</obj_property>
+         </wvobject>
+      </wvobject>
+      <wvobject fp_name="/PE_TB/uut/Injector/HeaderFlits[1]" type="array">
+         <obj_property name="ElementShortName">[1,0:2][31:0]</obj_property>
+         <obj_property name="ObjectShortName">[1,0:2][31:0]</obj_property>
+      </wvobject>
    </wvobject>
    <wvobject fp_name="/PE_TB/uut/Injector/PayloadFlits" type="array">
       <obj_property name="ElementShortName">PayloadFlits[0:1,0:19][31:0]</obj_property>
