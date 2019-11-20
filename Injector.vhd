@@ -58,6 +58,7 @@ architecture RTL of Injector is
 
     -- JSON configuration file
     constant InjectorJSONConfig: T_JSON := jsonLoad(InjectorConfigFile);
+    constant PEJSONConfig: T_JSON := jsonLoad(PEConfigFile);
     constant WrapperAddressTableJSON: T_JSON := jsonLoad(WrapperAddressTable);
 
     -- Injector type ("FXD" or "DPD")
@@ -70,48 +71,43 @@ architecture RTL of Injector is
     constant InjectionRate: integer range 0 to 100 := jsonGetInteger(InjectorJSONConfig, "InjectionRate");
 
     -- Dependant injector constants
-    constant PEPos : integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
-    constant AppID : integer := jsonGetInteger(InjectorJSONConfig, "APPID");
-    constant ThreadID : integer := jsonGetInteger(InjectorJSONConfig, "ThreadID");
-    constant AverageProcessingTimeInClockPulses : integer := jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses");
+    constant PEPos: integer := jsonGetInteger(PEJSONConfig, "PEPos");
+    constant AppID: integer := jsonGetInteger(PEJSONConfig, "APPID");
+    constant ThreadID: integer := jsonGetInteger(PEJSONConfig, "ThreadID");
+    constant AverageProcessingTimeInClockPulses: integer := jsonGetInteger(PEJSONConfig, "AverageProcessingTimeInClockPulses");
 
     -- Source PEs constants
-    constant AmountOfSourcePEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
-    constant SourcePEsArray : SourcePEsArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePEsArray(InjectorJSONConfig, AmountOfSourcePEs);
+    constant AmountOfSourcePEs: integer := jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
+    constant SourcePEsArray: SourcePEsArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePEsArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
-    constant AmountOfTargetPEs : integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
-    constant TargetPEsArray : TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant AmountOfTargetPEs: integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
+    constant TargetPEsArray: TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
     constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
     constant WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1) := FillWrapperAddressTableArray(WrapperAddressTableJSON, TargetPEsArray);
 
     -- Message parameters
-    constant TargetPayloadSizeArray : TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant SourcePayloadSizeArray : SourcePayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
-    constant MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
+    constant TargetPayloadSizeArray: TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
+    constant SourcePayloadSizeArray: SourcePayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
+    constant MaxPayloadSize: integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
-    constant HeaderSize : integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
-    constant HeaderFlits : HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray, WrapperAddressTableArray);
+    constant HeaderSize: integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
+    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray, WrapperAddressTableArray);
 
-    constant TargetMessageSizeArray : TargetMessageSizeArray_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
+    constant TargetMessageSizeArray: TargetMessageSizeArray_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
     --constant SourceMessageSizeArray : SourceMessageSizeArray_t := FillSourceMessageSizeArray(SourcePayloadSizeArray, HeaderSize);
 
-    constant PayloadFlits : PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray, TargetPEsArray);
+    constant PayloadFlits: PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray, TargetPEsArray);
 
     -- Payload Flags
-    constant timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
-    constant amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
-
-    ---- RNG (Used by the Uniform function)
-    --signal RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
-    --signal RNGSeed2 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed2");
-    --signal randomNumber : real;
+    constant timestampFlag: integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
+    constant amountOfMessagesSentFlag: integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
 
     -- Clock Counter
-    signal clockCounter : integer range 0 to UINT32MaxValue := 0;
+    signal clockCounter: integer range 0 to UINT32MaxValue := 0;
 
     -- Semaphore for flow control if DPD injector is instantiated
-    signal semaphore : integer range 0 to UINT32MaxValue := 0;
+    signal semaphore: integer range 0 to UINT32MaxValue := 0;
 
 begin
 
@@ -131,7 +127,7 @@ begin
     end process;
 
 
-    -- Generates either fixed rate injector (injects flit at a fixed rate) or dependent injector (waits for a message to send another message)
+    -- Generates dependent injector (waits for a message to send another message)
     DependantInjector: if (InjectorType = "DPD") generate
 
         -- Waits for a specific message, then sends out messages after that message is received. (Only instanciated if InjectorType is set as "DPD" on JSON config file).
@@ -182,9 +178,6 @@ begin
 
                             -- Generates new (real) random number between 0 and 1
                             Uniform(RNGSeed1, RNGSeed2, RandomNumber);
-                            --randomNumber <= Uniform(RNGSeed1, RNGSeed2);
-                            --RNGSeed1 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed1)));
-                            --RNGSeed2 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed2)));
 
                             currentState <= Swaiting;
 
@@ -294,9 +287,6 @@ begin
 
                                             -- Generates a new random number
                                             Uniform(RNGSeed1, RNGSeed2, RandomNumber);
-                                            --randomNumber <= Uniform(RNGSeed1, RNGSeed2);
-                                            --RNGSeed1 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed1)));
-                                            --RNGSeed2 <= integer(trunc(Uniform(RNGSeed1, RNGSeed2) * real(RNGSeed2)));
                                             
                                         elsif FlowType = "DTM" then
 
@@ -341,8 +331,10 @@ begin
     end generate DependantInjector;
 
 
+    -- Generates fixed rate injector (injects flit at a fixed rate)
     FixedRateInjector: if (InjectorType = "FXD") generate
 
+        -- Generates messages at a specific rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
         FXD: block is
 
             type state_t is (Sreset, Swaiting, Ssending);
@@ -358,13 +350,9 @@ begin
             -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
             FixedRateInjetorProcess: process(Clock)
 
-                --variable injectionCounter: integer := 0;
-                --variable injectionPeriod: integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
                 variable flitTemp: DataWidth_t := (others=>'0');
                 variable firstFlitOutTimestamp: DataWidth_t := (others=>'0');
                 variable amountOfMessagesSent: DataWidth_t := (others=>'0');
-                --variable currentTargetPE: integer := 0;
-                --variable burstCounter: integer := 0;
 
                 -- RNG (Used by the Uniform function)
                 variable RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
@@ -540,14 +528,13 @@ begin
     Receiver: block is
 
         signal messageCounter: integer range 0 to UINT32MaxValue := 0;
+        signal flitCounter: integer := 0;
+        signal currentMessageSize: integer := 0;
+        signal latestMessageTimestamp: DataWidth_t := (others => '0');
         
     begin
 
         ReceiverProcess: process(Clock, Reset)
-
-            variable flitCounter: integer := 0;
-            variable currentMessageSize: integer := 0;
-            variable lastMessageTimestamp: DataWidth_t := (others => '0');
 
         begin
 
@@ -558,7 +545,7 @@ begin
 
                 -- Set default values and disables buffer read request
                 InputBufferReadRequest <= '0';
-                flitCounter := 0;
+                flitCounter <= 0;
                 messageCounter <= 0;
 
             elsif rising_edge(Clock) then
@@ -569,27 +556,30 @@ begin
                     -- Checks for an ADDR flit (Assumes header = [ADDR, SIZE])
                     if flitCounter = 0 then
 
-                        lastMessageTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
+                        latestMessageTimestamp <= std_logic_vector(to_unsigned(ClockCounter, DataWidth));
 
                     end if;
 
                     -- Checks for a SIZE flit (Assumes header = [ADDR, SIZE])
                     if flitCounter = 1 then
 
-                        currentMessageSize := to_integer(unsigned(DataIn));
+                        currentMessageSize <= to_integer(unsigned(DataIn));
 
                     end if;
 
                     -- Increments counter if its less than current message size or SIZE flit has not yet been received
-                    if (flitCounter < currentMessageSize) or (flitCounter = 0) then
+                    -- "HeaderSize" is read from injector JSON config
+                    if (flitCounter < currentMessageSize) or (flitCounter < HeaderSize) then
 
-                        flitCounter := flitCounter + 1;
+                        flitCounter <= flitCounter + 1;
 
                     -- Whole message has been received, increments message counter and reset flit counter
                     else
 
+                        -- TODO: Find if received message fits an expected pattern, and if so, inform DPD injector
+
                         -- Signals a message has been received to DPD injector and updates counters
-                        flitCounter := 0;
+                        flitCounter <= 0;
                         messageCounter <= incr(messageCounter, UINT32MaxValue, 0);
                         semaphore <= incr(Semaphore, UINT32MaxValue, 0);
 

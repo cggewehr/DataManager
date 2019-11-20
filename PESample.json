@@ -3,5 +3,9 @@
   "InjectorType" : "FXD",
   "InjectorClockPeriod" : 10,
   "InBufferSize" : 10,
-  "OutBufferSize" : 10
+  "OutBufferSize" : 10,
+  "PEPos": 22,
+  "APPID": 9,
+  "ThreadID": 47,
+  "AverageProcessingTimeInClockPulses": 10
 }

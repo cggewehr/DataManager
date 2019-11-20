@@ -2,10 +2,6 @@
   "InjectorType": "FXD",
   "FlowType": "RND",
   "InjectionRate": 94,
-  "PEPos": 22,
-  "APPID": 9,
-  "ThreadID": 47,
-  "AverageProcessingTimeInClockPulses": 10,
   "AmountOfSourcePEs": 1,
   "SourcePEs": [
     1
@@ -26,17 +22,15 @@
     20,
     10
   ],
-  "HeaderSize": 3,
+  "HeaderSize": 2,
   "Headers": {
     "Header2": [
       "ADDR",
-      "SIZE",
-      "TIME"
+      "SIZE"
     ],
     "Header4": [
       "ADDR",
-      "SIZE",
-      "TIME"
+      "SIZE"
     ]
   },
   "Payloads": {
