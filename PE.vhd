@@ -17,7 +17,7 @@ library ieee;
     use ieee.std_logic_1164.all;
     use ieee.std_logic_unsigned.all;
     use ieee.numeric_std.all;
-    
+
 library work;
     use work.PE_PKG.all;
     use work.JSON.all;
@@ -26,12 +26,11 @@ entity PE is
 
     generic(
         -- Path to JSON file containing PE and APP parameters
-        --PEConfigFile        : string := "C:\Projetos Vivado\Injetor\PESample.json";
-        PEConfigFile        : string := "C:\Users\CarlosGabriel\Documents\GitKraken\DataManager\PESample.json";
-        --InjectorConfigFile  : string := "C:\Projetos Vivado\Injetor\InjectorSample.json";
-        InjectorConfigFile  : string := "C:\Users\CarlosGabriel\Documents\GitKraken\DataManager\InjectorSample.json";
-        WrapperAddressTable : string := "C:\Projetos Vivado\Injetor\WrapperAddressTable.json"
+        PEConfigFile        : string := "PESample.json";
+        InjectorConfigFile  : string := "InjectorSample.json";
+        PlatformConfigFile  : string := "PlatformSample.json"
     );
+
     port(
 
         -- Basic
@@ -46,7 +45,7 @@ entity PE is
         Clock_rx            : in  std_logic;        
         Rx                  : in  std_logic;
         Data_in             : in  DataWidth_t;
-        Credit_o            : out std_logic    -- Debug MC
+        Credit_o            : out std_logic
     );
 
 end entity PE;
@@ -55,7 +54,6 @@ architecture Injector of PE is
 
     -- JSON config files
     constant PEJSONConfig: T_JSON := jsonLoad(PEConfigFile);
-    --constant InjectorJSONConfig: T_JSON := jsonLoadFile(InjectorConfigFile);
 
     -- COMM STRUCTURE INTERFACE CONSTANTS ("NOC", "XBR" or "P2P", "BUS")
     constant CommStructure: string(1 to 3) := jsonGetString(PEJSONConfig, "CommStructure");
@@ -196,7 +194,7 @@ begin
         generic map(
             PEConfigFile => PEConfigFile,
             InjectorConfigFile => InjectorConfigFile,
-            WrapperAddressTable => WrapperAddressTable
+            PlatformConfigFile => PlatformConfigFile
         )
         port map(
             

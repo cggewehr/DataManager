@@ -1,0 +1,15 @@
+{
+  "NUMBER_PROCESSORS_X": 3,
+  "NUMBER_PROCESSORS_Y": 3,
+  "NUMBER_PROCESSORS": 9,
+  "MASTER_ADDRESS": 0,
+  "WrapperAddresses":[
+    0,
+    11,
+    22,
+    33,
+    44,
+    55,
+    66
+  ]
+}

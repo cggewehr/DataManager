@@ -27,9 +27,9 @@ library work;
 entity Injector is
 
 	generic (
-        PEConfigFile          : string := "~\PESample.json";
-        InjectorConfigFile    : string := "~\InjectorSample.json";
-        WrapperAddressTable   : string := "~\WrapperAddressTable.json"
+        PEConfigFile          : string := "PESample.json";
+        InjectorConfigFile    : string := "InjectorSample.json";
+        PlatformConfigFile    : string := "PlatformSample.json"
 	);
 
 	port (
@@ -59,7 +59,7 @@ architecture RTL of Injector is
     -- JSON configuration file
     constant InjectorJSONConfig: T_JSON := jsonLoad(InjectorConfigFile);
     constant PEJSONConfig: T_JSON := jsonLoad(PEConfigFile);
-    constant WrapperAddressTableJSON: T_JSON := jsonLoad(WrapperAddressTable);
+    constant PlatformJSONConfig: T_JSON := jsonLoad(PlatformJSONConfig);
 
     -- Injector type ("FXD" or "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
@@ -83,8 +83,8 @@ architecture RTL of Injector is
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
     constant AmountOfTargetPEs: integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
     constant TargetPEsArray: TargetPEsArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPEsArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1) := FillWrapperAddressTableArray(WrapperAddressTableJSON, TargetPEsArray);
+    constant AmountOfMessagesInBurstArray: AmountOfMessagesInBurstArray_t(0 to AmountOfTargetPEs - 1) := FillAmountOfMessagesInBurstArray(InjectorJSONConfig, AmountOfTargetPEs);
+    --constant WrapperAddressTableArray: WrapperAddressTableArray_t(0 to AmountOfTargetPEs - 1) := FillWrapperAddressTableArray(PlatformJSONConfig, TargetPEsArray);
 
     -- Message parameters
     constant TargetPayloadSizeArray: TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
@@ -92,9 +92,9 @@ architecture RTL of Injector is
     constant MaxPayloadSize: integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
     constant HeaderSize: integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
-    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray, WrapperAddressTableArray);
+    constant HeaderFlits: HeaderFlits_t(0 to AmountOfTargetPEs - 1, 0 to HeaderSize - 1) := BuildHeaders(InjectorJSONConfig, PlatformJSONConfig, HeaderSize, TargetPayloadSizeArray, TargetPEsArray);
 
-    constant TargetMessageSizeArray: TargetMessageSizeArray_t := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
+    constant TargetMessageSizeArray: TargetMessageSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetMessageSizeArray(TargetPayloadSizeArray, HeaderSize); 
     --constant SourceMessageSizeArray : SourceMessageSizeArray_t := FillSourceMessageSizeArray(SourcePayloadSizeArray, HeaderSize);
 
     constant PayloadFlits: PayloadFlits_t(TargetPayloadSizeArray'range, 0 to MaxPayloadSize - 1) := BuildPayloads(InjectorJSONConfig, TargetPayloadSizeArray, TargetPEsArray);

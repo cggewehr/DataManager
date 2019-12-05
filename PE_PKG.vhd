@@ -7,14 +7,23 @@ library IEEE;
     use IEEE.numeric_std.all;
     
 library work;
-    use work.HeMPS_defaults.all;
+    --use work.HeMPS_defaults.all;
     use work.JSON.all;
 
 package PE_PKG is
 
     -- Common constants (used by all project files)
-    constant DataWidth: integer := TAM_FLIT; -- TAM_FLIT is declared in HeMPS_defaults, defaulted to 32
+    --constant DataWidth: integer := TAM_FLIT; -- TAM_FLIT is declared in HeMPS_defaults, defaulted to 32
+    --constant HalfDataWidth: integer := TAM_FLIT/2;
+    --constant QuarterDataWidth: integer := TAM_FLIT/4;
+    constant DataWidth: integer := 32; 
+    constant HalfDataWidth: integer := DataWidth/2;
+    constant QuarterDataWidth: integer := DataWidth/4;
+
     subtype DataWidth_t is std_logic_vector(DataWidth - 1 downto 0);
+    subtype HalfDataWidth_t is std_logic_vector(HalfDataWidth - 1 downto 0);
+    subtype QuarterDataWidth_t is std_logic_vector(QuarterDataWidth - 1 downto 0);
+
     constant UINT32MaxValue: integer := 2147483646; -- Xilinx for some reason only allows an integer to go up to this value, even if range is defined as 0 to 4294967295
     --constant UINT32MaxValue: integer := 4294967295;
 
@@ -30,6 +39,9 @@ package PE_PKG is
     type HeaderFlits_t is array(integer range <>, integer range <>) of DataWidth_t;
     type PayloadFlits_t is array (integer range <>, integer range <>) of DataWidth_t;
 
+    -- Adapted functions from HeMPS_defaults
+    function RouterAddress(GlobalAddress: integer ; NUMBER_PROCESSORS_X: integer) return std_logic_vector;
+
     -- Function declarations for organizing data from JSON config file
     function FillSourcePEsArray(InjectorJSONConfig: T_JSON ; AmountOfSourcePEs: integer) return SourcePEsArray_t;
     function FillSourcePayloadSizeArray(InjectorJSONConfig: T_JSON ; AmountOfSourcePEs: integer) return SourcePayloadSizeArray_t;
@@ -38,7 +50,7 @@ package PE_PKG is
     function FillTargetMessageSizeArray(TargetPayloadSizeArray: TargetPayloadSizeArray_t ; HeaderSize: integer) return TargetMessageSizeArray_t;
     function FillAmountOfMessagesInBurstArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return AmountOfMessagesInBurstArray_t;
     function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t;
-    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressesArray: WrapperAddressTableArray_t) return HeaderFlits_t;
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; PlatformJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray: TargetPayloadSizeArray_t) return integer;
 
@@ -49,7 +61,21 @@ package PE_PKG is
 
 end package PE_PKG;
 
+
 package body PE_PKG is
+
+
+    -- Translates global address to router xy coordinates (ADAPTED FROM "HeMPS_defaults" PKG)
+    function RouterAddress(GlobalAddress: integer ; NUMBER_PROCESSORS_X: integer) return std_logic_vector is
+            variable posX, posY : QuarterDataWidth_t;
+    begin 
+
+            posX := std_logic_vector(to_unsigned((router mod NUMBER_PROCESSORS_X)), QuarterDataWidth);
+            posY := std_logic_vector(to_unsigned((router / NUMBER_PROCESSORS_X)), QuarterDataWidth);
+            
+            return (pos_x & pos_y);
+
+    end function RouterAddress;
 
 
     -- Fills array of source PEs 
@@ -151,12 +177,12 @@ package body PE_PKG is
 
 
     -- Fills array containing address of associated wrapper for each global address (To find the address of a global address's associated wrapper)
-    function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t is
+    function FillWrapperAddressTableArray(PlatformJSONConfig: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t is
         variable WrapperAddressTableArray: WrapperAddressTableArray_t(TargetPEsArray'range);
     begin
 
         FillWrapperAddressTableArrayLoop: for i in TargetPEsArray'range loop
-            WrapperAddressTableArray(i) := jsonGetInteger(WrapperAddressTableJSON, ("WrapperAddresses/" & integer'image(TargetPEsArray(i))));
+            WrapperAddressTableArray(i) := jsonGetInteger(PlatformJSONConfig, ("WrapperAddresses/" & integer'image(TargetPEsArray(i))));
         end loop FillWrapperAddressTableArrayLoop;
 
         return WrapperAddressTableArray;
@@ -165,10 +191,11 @@ package body PE_PKG is
 
 
     -- Builds header for each target PE
-    function BuildHeaders(InjectorJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t ; WrapperAddressesArray: WrapperAddressTableArray_t) return HeaderFlits_t is
+    function BuildHeaders(InjectorJSONConfig: T_JSON ; PlatformJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t is
         variable Headers: HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
         variable headerFlitString: string(1 to 4);
         variable timestampFlag: integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
+        constant NUMBER_PROCESSORS_X: integer := jsonGetInteger(PlatformJSONConfig, "NUMBER_PROCESSORS_X");
     begin
 
     	report "Compiling header flits" severity note;
@@ -189,11 +216,12 @@ package body PE_PKG is
 
                 if headerFlitString = "ADDR" then 
 
-                    -- Global address @ least significative bits
-                    Headers(target, flit)((DataWidth/2) - 1 downto 0) := std_logic_vector(to_unsigned(TargetPEsArray(target), DataWidth/2));
+                    -- Global XY coordinates @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
+                    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
 
-                    -- Wrapper address @ most significative bits
-                    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := std_logic_vector(to_unsigned(WrapperAddressesArray(target), DataWidth/2));
+                    -- Wrapper XY coordinates @ lets significative bits
+                    wrapperAddress := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
+                    Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
 
                 elsif headerFlitString = "SIZE" then
 
@@ -206,6 +234,10 @@ package body PE_PKG is
                 elsif headerFlitString = "BLNK" then
 
                     Headers(target, flit) := (others => '0');
+
+                else
+
+                     report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
 
                 end if;
 
