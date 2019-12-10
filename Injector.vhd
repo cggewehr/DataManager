@@ -59,7 +59,7 @@ architecture RTL of Injector is
     -- JSON configuration file
     constant InjectorJSONConfig: T_JSON := jsonLoad(InjectorConfigFile);
     constant PEJSONConfig: T_JSON := jsonLoad(PEConfigFile);
-    constant PlatformJSONConfig: T_JSON := jsonLoad(PlatformJSONConfig);
+    constant PlatformJSONConfig: T_JSON := jsonLoad(PlatformConfigFile);
 
     -- Injector type ("FXD" or "DPD")
     constant InjectorType: string(1 to 3) := jsonGetString(InjectorJSONConfig, "InjectorType");
@@ -594,3 +594,4 @@ begin
     end block Receiver;
 
 end architecture RTL;
+

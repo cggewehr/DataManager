@@ -41,7 +41,7 @@ architecture RTL of CircularBuffer is
 
     signal readPointer : integer range 0 to BufferSize - 1;
     signal writePointer: integer range 0 to BufferSize - 1;
-    signal dataCount: integer range 0 to BufferSize - 1;
+    signal dataCount: integer range 0 to BufferSize;
     
     signal dataCountIncrFlag, dataCountDecrFlag: std_logic;
 
@@ -105,11 +105,12 @@ begin
             readPointer <= 0;
             dataOutAV <= '0';
             dataCountDecrFlag <= '0';
+	    dataOut	<= (others => '0');	
 
         elsif rising_edge(Clock) then
 
             -- DataAV and dataCountDecrFlag are defaulted to '0'
-            dataOutAV <= '0';
+            --dataOutAV <= '0'; 
             dataCountDecrFlag <= '0';
 
             -- Checks for a read request. If there is data on the buffer, pass in on to consumer entity
@@ -119,6 +120,10 @@ begin
                 dataOutAV <= '1';
                 readPointer <= incr(readPointer, bufferSize - 1, 0);
                 dataCountDecrFlag <= '1';
+	    -- The RX is only lowered when the buffer has no more content
+	    elsif dataCount < 0 then 
+
+		dataOutAV <= '0';
 
             end if;
 
@@ -162,3 +167,4 @@ end architecture RTL;
         
 
         
+
