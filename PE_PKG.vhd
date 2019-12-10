@@ -311,7 +311,7 @@ package body PE_PKG is
                 elsif payloadFlitString = "AVGPT" then
 
                     --Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses"), DataWidth));
-                    Payloads(target, flit) := (others => '1');
+                    Payloads(target, flit) := (others => '1'); -- DEBUG 
                 elsif payloadFlitString = "TMSTP" then
 
                     -- Flags for "real time" processing
