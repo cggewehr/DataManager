@@ -594,4 +594,3 @@ begin
     end block Receiver;
 
 end architecture RTL;
-
