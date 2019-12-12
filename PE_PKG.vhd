@@ -201,6 +201,9 @@ package body PE_PKG is
         variable wrapperAddress: integer;
         variable timestampFlag: integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
         constant NUMBER_PROCESSORS_X: integer := jsonGetInteger(PlatformJSONConfig, "NUMBER_PROCESSORS_X");
+	-- Bus Adaptations
+	variable myID:		integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
+	variable myWrapper:	integer := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(myID));
     begin
 
     	report "Compiling header flits" severity note;
@@ -220,18 +223,22 @@ package body PE_PKG is
                 --                        "BLNK" (Fills with zeroes)
 
                 if headerFlitString = "ADDR" then 
-                    
-		    -- Works only for NoCs 
-                    Headers(target, flit)((DataWidth/2) - 1 downto 0 ):= RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
-		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
 
-		    -- TODO Ajustar a geração do endereço. Se tiver wrapper, funciona tal qual o código abaixo. MAS se NÃO tiver no wrapper, o ADDR deve ficar nos LSBits
-                    -- Global XY coordinates @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
-                    --Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+                    -- Get the wrapper address
+		    wrapperAddress := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
 
-                    -- Wrapper XY coordinates @ lets significative bits
-                    --wrapperAddress := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
-                    --Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
+		    if wrapperAddress = 0 or wrapperAddress = myWrapper then --If the target is: In NoC OR In the same structure
+
+   	         	    Headers(target, flit)((DataWidth/2) - 1 downto 0 ):= RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+			    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
+
+		    else  -- Combine the wrapper address with the PE address			
+
+			    -- Global XY coordinates @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
+			    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+			    -- Wrapper XY coordinates @ lets significative bits
+			    Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
+		    end if;
 
                 elsif headerFlitString = "SIZE" then
 
@@ -311,7 +318,7 @@ package body PE_PKG is
                 elsif payloadFlitString = "AVGPT" then
 
                     --Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses"), DataWidth));
-                    Payloads(target, flit) := (others => '1'); -- DEBUG 
+                    Payloads(target, flit) := (others => '1');
                 elsif payloadFlitString = "TMSTP" then
 
                     -- Flags for "real time" processing
@@ -424,5 +431,4 @@ package body PE_PKG is
 
 
 end package body PE_PKG;
-
 
