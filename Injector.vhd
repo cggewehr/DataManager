@@ -29,7 +29,9 @@ entity Injector is
 	generic (
         PEConfigFile          : string := "PESample.json";
         InjectorConfigFile    : string := "InjectorSample.json";
-        PlatformConfigFile    : string := "PlatformSample.json"
+        PlatformConfigFile    : string := "PlatformSample.json";
+        InboundLogFilename    : string;
+        OutboundLogFilename   : string
 	);
 
 	port (
@@ -120,7 +122,7 @@ begin
 
         elsif rising_edge(Clock) then
 
-            clockCounter <= incr(ClockCounter, UINT32MaxValue , 0);
+            clockCounter <= incr(clockCounter, UINT32MaxValue , 0);
 
         end if;
 
@@ -231,6 +233,15 @@ begin
                                     if flitCounter = 0 then
 
                                         firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
+
+                                        -- Write to log file ( | # of msgs sent | target | msg size | timestamp | )
+                                        write(OutboundLogLine, integer'image(amountOfMessagesSent) & " ");
+                                        write(OutboundLogLine, integer'image(currentTargetPE) & " ");
+                                        write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
+                                        write(OutboundLogLine, integer'image(clockCounter);
+                                        writeline(OutboundLog, OutboundLogLine);
+
+                                        amountOfMessagesSent := amountOfMessagesSent + 1;
 
                                     end if;
 
@@ -345,6 +356,8 @@ begin
             signal injectionPeriod: integer := ((TargetMessageSizeArray(0) * 100) / InjectionRate) - TargetMessageSizeArray(0);
             signal burstCounter: integer := 0;
 
+            file OutboundLog: text open write_mode is OutboundLogFilename;
+
         begin
 
             -- Sends out messages at a constant injection rate. (Only instanciated if InjectorType is set as "FXD" on JSON config file).
@@ -358,6 +371,8 @@ begin
                 variable RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
                 variable RNGSeed2 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed2");
                 variable randomNumber : real;
+
+                variable OutboundLogLine: line;
 
             begin
 
@@ -397,7 +412,15 @@ begin
                                 -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
                                 if injectionCounter = 0 then
 
-                                    firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
+                                    firstFlitOutTimestamp := std_logic_vector(to_unsigned(clockCounter, DataWidth));
+
+                                    -- Write to log file ( | # of msgs sent | target | msg size | timestamp | )
+                                    write(OutboundLogLine, integer'image(amountOfMessagesSent) & " ");
+                                    write(OutboundLogLine, integer'image(currentTargetPE) & " ");
+                                    write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
+                                    write(OutboundLogLine, integer'image(clockCounter);
+                                    writeline(OutboundLog, OutboundLogLine);
+
                                     amountOfMessagesSent := amountOfMessagesSent + 1;
 
                                 end if;
@@ -531,11 +554,14 @@ begin
         signal flitCounter: integer := 0;
         signal currentMessageSize: integer := 0;
         signal latestMessageTimestamp: DataWidth_t := (others => '0');
+        signal latestSourceID: integer := 0;
+
+        file InboundLog: open write_mode is InboundLogFilename;
         
     begin
 
         ReceiverProcess: process(Clock, Reset)
-
+            variable InboundLogLine: line;
         begin
 
             -- Read request signal will always be set to '1' unless Reset = '1'
@@ -556,14 +582,17 @@ begin
                     -- Checks for an ADDR flit (Assumes header = [ADDR, SIZE])
                     if flitCounter = 0 then
 
-                        latestMessageTimestamp <= std_logic_vector(to_unsigned(ClockCounter, DataWidth));
-
-                    end if;
+                        latestMessageTimestamp <= std_logic_vector(to_unsigned(clockCounter, DataWidth));
 
                     -- Checks for a SIZE flit (Assumes header = [ADDR, SIZE])
-                    if flitCounter = 1 then
+                    elsif flitCounter = 1 then
 
                         currentMessageSize <= to_integer(unsigned(DataIn));
+
+                    -- Saves source ID (Assumes first payload flit containts PEPOS of sender)
+                    elsif flitCounter = 2 then
+
+                        latestSourceID <= to_integer(unsigned(DataIn));
 
                     end if;
 
@@ -578,10 +607,17 @@ begin
 
                         -- TODO: Find if received message fits an expected pattern, and if so, inform DPD injector
 
+                        -- Write to log file ( | # of msgs sent | source | msg size | timestamp | )
+                        writeline(OutboundLogLine, integer'image(messageCounter) & " ");
+                        writeline(OutboundLogLine, integer'image(latestSourceID) & " ");
+                        writeline(OutboundLogLine, integer'image(flitCounter) & " ");
+                        writeline(OutboundLogLine, integer'image(clockCounter));
+                        write(OutboundLog, OutboundLogLine);
+
                         -- Signals a message has been received to DPD injector and updates counters
-                        flitCounter <= 0;
                         messageCounter <= incr(messageCounter, UINT32MaxValue, 0);
                         semaphore <= incr(Semaphore, UINT32MaxValue, 0);
+                        flitCounter <= 0;
 
                     end if;
 

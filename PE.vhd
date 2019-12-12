@@ -26,9 +26,11 @@ entity PE is
 
     generic(
         -- Path to JSON file containing PE and APP parameters
-        PEConfigFile        : string := "PESample.json";
-        InjectorConfigFile  : string := "InjectorSample.json";
-        PlatformConfigFile  : string := "PlatformSample.json"
+        PEConfigFile           : string := "PESample.json";
+        InjectorConfigFile     : string := "InjectorSample.json";
+        PlatformConfigFile     : string := "PlatformSample.json";
+        InboundLogFilename     : string;
+        OutboundLogFilmename   : string
     );
 
     port(
@@ -194,7 +196,9 @@ begin
         generic map(
             PEConfigFile => PEConfigFile,
             InjectorConfigFile => InjectorConfigFile,
-            PlatformConfigFile => PlatformConfigFile
+            PlatformConfigFile => PlatformConfigFile,
+            InboundLogFilename => InboundLogFilename,
+            OutboundLogFilename => OutboundLogFilename
         )
         port map(
             
