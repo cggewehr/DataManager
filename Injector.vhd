@@ -243,7 +243,7 @@ begin
 
                                         -- Write to log file ( | # of msgs sent | target | msg size | timestamp | )
                                         write(OutboundLogLine, integer'image(to_integer(unsigned(amountOfMessagesSent))) & " ");
-                                        write(OutboundLogLine, integer'image(currentTargetPE) & " ");
+                                        write(OutboundLogLine, integer'image(TargetPEsArray(currentTargetPE)) & " ");
                                         write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
                                         write(OutboundLogLine, integer'image(clockCounter));
                                         writeline(OutboundLog, OutboundLogLine);
@@ -423,7 +423,7 @@ begin
 
                                     -- Write to log file ( | # of msgs sent | target | msg size | timestamp | )
                                     write(OutboundLogLine, integer'image(to_integer(unsigned(amountOfMessagesSent))) & " ");
-                                    write(OutboundLogLine, integer'image(currentTargetPE) & " ");
+                                    write(OutboundLogLine, integer'image(TargetPEsArray(currentTargetPE)) & " ");
                                     write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
                                     write(OutboundLogLine, integer'image(clockCounter));
                                     writeline(OutboundLog, OutboundLogLine);
