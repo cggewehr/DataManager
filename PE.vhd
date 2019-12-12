@@ -30,7 +30,7 @@ entity PE is
         InjectorConfigFile     : string := "InjectorSample.json";
         PlatformConfigFile     : string := "PlatformSample.json";
         InboundLogFilename     : string;
-        OutboundLogFilmename   : string
+        OutboundLogFilename    : string
     );
 
     port(

@@ -20,6 +20,9 @@ library ieee;
     use ieee.std_logic_unsigned.all;
     use ieee.numeric_std.all;
 
+library std;
+    use std.textio.all;
+
 library work;
     use work.PE_PKG.all;
     use work.JSON.all;
@@ -138,6 +141,8 @@ begin
             type state_t is (Sreset, Swaiting, Sprocessing, Ssending);
             signal currentState: state_t;
             
+            file OutboundLog: text open write_mode is OutboundLogFilename;
+            
         begin
 
             DependantInjectorProcess: process(Clock)
@@ -154,6 +159,8 @@ begin
                 variable RNGSeed1 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed1");
                 variable RNGSeed2 : integer := jsonGetInteger(InjectorJSONConfig, "RNGSeed2");
                 variable randomNumber : real;
+                
+                variable OutboundLogLine: line;
 
             begin
 
@@ -235,10 +242,10 @@ begin
                                         firstFlitOutTimestamp := std_logic_vector(to_unsigned(ClockCounter, DataWidth));
 
                                         -- Write to log file ( | # of msgs sent | target | msg size | timestamp | )
-                                        write(OutboundLogLine, integer'image(amountOfMessagesSent) & " ");
+                                        write(OutboundLogLine, integer'image(to_integer(unsigned(amountOfMessagesSent))) & " ");
                                         write(OutboundLogLine, integer'image(currentTargetPE) & " ");
                                         write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
-                                        write(OutboundLogLine, integer'image(clockCounter);
+                                        write(OutboundLogLine, integer'image(clockCounter));
                                         writeline(OutboundLog, OutboundLogLine);
 
                                         amountOfMessagesSent := amountOfMessagesSent + 1;
@@ -415,10 +422,10 @@ begin
                                     firstFlitOutTimestamp := std_logic_vector(to_unsigned(clockCounter, DataWidth));
 
                                     -- Write to log file ( | # of msgs sent | target | msg size | timestamp | )
-                                    write(OutboundLogLine, integer'image(amountOfMessagesSent) & " ");
+                                    write(OutboundLogLine, integer'image(to_integer(unsigned(amountOfMessagesSent))) & " ");
                                     write(OutboundLogLine, integer'image(currentTargetPE) & " ");
                                     write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
-                                    write(OutboundLogLine, integer'image(clockCounter);
+                                    write(OutboundLogLine, integer'image(clockCounter));
                                     writeline(OutboundLog, OutboundLogLine);
 
                                     amountOfMessagesSent := amountOfMessagesSent + 1;
@@ -556,7 +563,7 @@ begin
         signal latestMessageTimestamp: DataWidth_t := (others => '0');
         signal latestSourceID: integer := 0;
 
-        file InboundLog: open write_mode is InboundLogFilename;
+        file InboundLog: text open write_mode is InboundLogFilename;
         
     begin
 
@@ -608,11 +615,11 @@ begin
                         -- TODO: Find if received message fits an expected pattern, and if so, inform DPD injector
 
                         -- Write to log file ( | # of msgs sent | source | msg size | timestamp | )
-                        writeline(OutboundLogLine, integer'image(messageCounter) & " ");
-                        writeline(OutboundLogLine, integer'image(latestSourceID) & " ");
-                        writeline(OutboundLogLine, integer'image(flitCounter) & " ");
-                        writeline(OutboundLogLine, integer'image(clockCounter));
-                        write(OutboundLog, OutboundLogLine);
+                        write(InboundLogLine, integer'image(messageCounter) & " ");
+                        write(InboundLogLine, integer'image(latestSourceID) & " ");
+                        write(InboundLogLine, integer'image(flitCounter) & " ");
+                        write(InboundLogLine, integer'image(clockCounter));
+                        writeline(InboundLog, InboundLogLine);
 
                         -- Signals a message has been received to DPD injector and updates counters
                         messageCounter <= incr(messageCounter, UINT32MaxValue, 0);
