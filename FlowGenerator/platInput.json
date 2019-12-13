@@ -1,0 +1,29 @@
+{
+  "system": {
+    "numApp": "3",
+    "apps": [
+      {
+        "numTask": "5",
+        "trafficPattern": "RND",
+        "mapping": "CUSTOM",
+        "PEpos": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+        ],
+        "InjRate": [
+          "50",
+          "50",
+          "50",
+          "50",
+          "50"
+        ],
+        "TargetPayload": [
+          9
+        ]
+      }
+    ]
+  }
+}

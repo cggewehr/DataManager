@@ -1,0 +1,22 @@
+<number of apps>
+3
+<task per app>
+5
+6
+7
+<traffic pattern>
+RND
+RND
+RND
+<injection rate>
+{50,50,50,50,50}
+{50,50,50,50,50,50}
+{50,50,50,50,50,50,50}
+<mapping>
+custom {1,2,3,4,5}
+oracle
+oracle
+<priority>
+0
+1
+2

@@ -1,0 +1,104 @@
+{
+    "APPID": 0, 
+    "AmountOfMessagesInBurst": "1", 
+    "AmountOfSourcePEs": 4, 
+    "AmountOfTargetPEs": 4, 
+    "AverageProcessingTimeInClockPulses": "1", 
+    "FlowType": "RND", 
+    "HeaderSize": "2", 
+    "Headers": {
+        "Header1": [
+            "ADDR", 
+            "SIZE"
+        ], 
+        "Header3": [
+            "ADDR", 
+            "SIZE"
+        ], 
+        "Header4": [
+            "ADDR", 
+            "SIZE"
+        ], 
+        "Header5": [
+            "ADDR", 
+            "SIZE"
+        ]
+    }, 
+    "InjectionRate": "50", 
+    "InjectorType": "FXD", 
+    "PEPos": "2", 
+    "Payload": {
+        "Payload1": [
+            "PEPOS", 
+            "APPID", 
+            "THDID", 
+            "AVGPT", 
+            "TMSTP", 
+            "AMMSG", 
+            "BLANK", 
+            "BLANK", 
+            "BLANK"
+        ], 
+        "Payload3": [
+            "PEPOS", 
+            "APPID", 
+            "THDID", 
+            "AVGPT", 
+            "TMSTP", 
+            "AMMSG", 
+            "BLANK", 
+            "BLANK", 
+            "BLANK"
+        ], 
+        "Payload4": [
+            "PEPOS", 
+            "APPID", 
+            "THDID", 
+            "AVGPT", 
+            "TMSTP", 
+            "AMMSG", 
+            "BLANK", 
+            "BLANK", 
+            "BLANK"
+        ], 
+        "Payload5": [
+            "PEPOS", 
+            "APPID", 
+            "THDID", 
+            "AVGPT", 
+            "TMSTP", 
+            "AMMSG", 
+            "BLANK", 
+            "BLANK", 
+            "BLANK"
+        ]
+    }, 
+    "SourcePEs": [
+        "1", 
+        "3", 
+        "4", 
+        "5"
+    ], 
+    "SourcePayloadSize": [
+        20, 
+        20, 
+        20, 
+        20
+    ], 
+    "TargetPEs": [
+        "1", 
+        "3", 
+        "4", 
+        "5"
+    ], 
+    "TargetPayloadSize": [
+        9, 
+        9, 
+        9, 
+        9, 
+        9
+    ], 
+    "ThreadID": 1, 
+    "amountOfMessagesSentFlag": "512", 
+    "timestampFlag": "256"
+}

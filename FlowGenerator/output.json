@@ -1,0 +1,77 @@
+{
+    "APPID": "1", 
+    "AmountOFTargetPEs": "3", 
+    "AmountOfMessagesInBurst": "1", 
+    "AmountOfSourcePEs": "1", 
+    "AverageProcessingTimeInClockPulses": "1", 
+    "FlowType": "RND", 
+    "HeaderSize": "2", 
+    "Headers": {
+        "Header2": [
+            "ADDR", 
+            "SIZE"
+        ], 
+        "Header3": [
+            "ADDR", 
+            "SIZE"
+        ], 
+        "Header4": [
+            "ADDR", 
+            "SIZE"
+        ]
+    }, 
+    "InjectionRate": "50", 
+    "InjectorType": "FXD", 
+    "PEPos": "0", 
+    "Payload": {
+        "Payload2": [
+            "PEPOS", 
+            "APPID", 
+            "THDID", 
+            "AVGPT", 
+            "TMSTP", 
+            "AMMSG", 
+            "BLANK"
+        ], 
+        "Payload3": [
+            "PEPOS", 
+            "APPID", 
+            "THDID", 
+            "AVGPT", 
+            "TMSTP", 
+            "AMMSG", 
+            "BLANK", 
+            "BLANK"
+        ], 
+        "Payload4": [
+            "PEPOS", 
+            "APPID", 
+            "THDID", 
+            "AVGPT", 
+            "TMSTP", 
+            "AMMSG", 
+            "BLANK", 
+            "BLANK", 
+            "BLANK"
+        ]
+    }, 
+    "SourcePEs": [
+        "1"
+    ], 
+    "SourcePayloadSize": [
+        10
+    ], 
+    "TargetPEs": [
+        "2", 
+        "3", 
+        "4"
+    ], 
+    "TargetPayloadSize": [
+        7, 
+        8, 
+        9
+    ], 
+    "ThreadID": "0", 
+    "amountOfMessagesSentFlag": "512", 
+    "timestampFlag": "256"
+}
