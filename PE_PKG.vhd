@@ -210,7 +210,7 @@ package body PE_PKG is
 
         BuildHeaderLoop: for target in TargetPEsArray'range loop
 
-        	report "    Compiling header for target PE " & integer'image(TargetPEsArray(target)) severity note;
+        	--report "    Compiling header for target PE " & integer'image(TargetPEsArray(target)) severity note;
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
@@ -254,11 +254,11 @@ package body PE_PKG is
 
                 else
 
-                     report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
+                     --report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
 
                 end if;
 
-                report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
+                --report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
 
             end loop BuildFlitLoop;
 
@@ -278,11 +278,11 @@ package body PE_PKG is
         variable amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
     begin
 
-    	report "Compiling payload flits" severity note;
+    	--report "Compiling payload flits" severity note;
 
         BuildPayloadLoop: for target in TargetPayloadSizeArray'range loop
 
-        	report "    Compiling payload for target PE " & integer'image(TargetPEsArray(target)) severity note;
+        	--report "    Compiling payload for target PE " & integer'image(TargetPEsArray(target)) severity note;
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
 
@@ -335,7 +335,7 @@ package body PE_PKG is
 
                 end if;
 
-                report "        Flit " & integer'image(flit) & " of payload of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & payloadFlitString & " = " & integer'image(to_integer(unsigned(Payloads(target, flit)))) severity note;
+                --report "        Flit " & integer'image(flit) & " of payload of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & payloadFlitString & " = " & integer'image(to_integer(unsigned(Payloads(target, flit)))) severity note;
 
             end loop BuildFlitLoop;
 

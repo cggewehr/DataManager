@@ -82,8 +82,8 @@ architecture RTL of Injector is
     constant AverageProcessingTimeInClockPulses: integer := jsonGetInteger(PEJSONConfig, "AverageProcessingTimeInClockPulses");
 
     -- Source PEs constants
-    constant AmountOfSourcePEs: integer := jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
-    constant SourcePEsArray: SourcePEsArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePEsArray(InjectorJSONConfig, AmountOfSourcePEs);
+    --constant AmountOfSourcePEs: integer := jsonGetInteger(InjectorJSONConfig, "AmountOfSourcePEs");
+    --constant SourcePEsArray: SourcePEsArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePEsArray(InjectorJSONConfig, AmountOfSourcePEs);
 
     -- Target PEs constants (Lower numbered targets in JSON have higher priority (target number 0 will have the highest priority)
     constant AmountOfTargetPEs: integer := jsonGetInteger(InjectorJSONConfig, "AmountOfTargetPEs");
@@ -93,7 +93,7 @@ architecture RTL of Injector is
 
     -- Message parameters
     constant TargetPayloadSizeArray: TargetPayloadSizeArray_t(0 to AmountOfTargetPEs - 1) := FillTargetPayloadSizeArray(InjectorJSONConfig, AmountOfTargetPEs);
-    constant SourcePayloadSizeArray: SourcePayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
+    --constant SourcePayloadSizeArray: SourcePayloadSizeArray_t(0 to AmountOfSourcePEs - 1) := FillSourcePayloadSizeArray(InjectorJSONConfig, AmountOfSourcePEs);
     constant MaxPayloadSize: integer := FindMaxPayloadSize(TargetPayloadSizeArray);
 
     constant HeaderSize: integer := jsonGetInteger(InjectorJSONConfig, "HeaderSize");
