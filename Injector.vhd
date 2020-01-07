@@ -421,9 +421,10 @@ begin
 
                                     firstFlitOutTimestamp := std_logic_vector(to_unsigned(clockCounter, DataWidth));
 
-                                    -- Write to log file ( | # of msgs sent | target | msg size | timestamp | )
-                                    write(OutboundLogLine, integer'image(to_integer(unsigned(amountOfMessagesSent))) & " ");
+                                    -- Write to log file ( | target ID | source ID | msg size | timestamp | )
+                                    --write(OutboundLogLine, integer'image(to_integer(unsigned(amountOfMessagesSent))) & " ");
                                     write(OutboundLogLine, integer'image(TargetPEsArray(currentTargetPE)) & " ");
+                                    write(OutboundLogLine, integer'image(PEPos) & " ");
                                     write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
                                     write(OutboundLogLine, integer'image(clockCounter));
                                     writeline(OutboundLog, OutboundLogLine);
@@ -562,6 +563,7 @@ begin
         signal currentMessageSize: integer := 0;
         signal latestMessageTimestamp: DataWidth_t := (others => '0');
         signal latestSourceID: integer := 0;
+        signal outputTimestamp: integer := 0;
 
         file InboundLog: text open write_mode is InboundLogFilename;
         
@@ -601,6 +603,10 @@ begin
 
                         latestSourceID <= to_integer(unsigned(DataIn));
 
+                    elsif flitCounter = 3 then
+
+                        outputTimestamp <= to_integer(unsigned(DataIn));
+
                     end if;
 
                     -- Increments counter if its less than current message size or SIZE flit has not yet been received
@@ -614,10 +620,12 @@ begin
 
                         -- TODO: Find if received message fits an expected pattern, and if so, inform DPD injector
 
-                        -- Write to log file ( | # of msgs sent | source | msg size | timestamp | )
-                        write(InboundLogLine, integer'image(messageCounter) & " ");
+                        -- Write to log file ( | target ID | source ID | msg size | output timestamp | input timestamp | )
+                        --write(InboundLogLine, integer'image(messageCounter) & " ");
+                        write(InboundLogLine, integer'image(PEPos) & " ");
                         write(InboundLogLine, integer'image(latestSourceID) & " ");
-                        write(InboundLogLine, integer'image(flitCounter) & " ");
+                        write(InboundLogLine, integer'image(currentMessageSize) & " ");
+                        write(InboundLogLine, integer'image(outputTimestamp) & " ");
                         write(InboundLogLine, integer'image(clockCounter));
                         writeline(InboundLog, InboundLogLine);
 
