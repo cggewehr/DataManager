@@ -10,7 +10,7 @@ AmountOfPEs = int(sys.argv[1])
 InLogs = [open("InLog" + str(x), 'r') for x in range(AmountOfPEs)]
 OutLogs = [open("OutLog" + str(x), 'r') for x in range(AmountOfPEs)]
 
-# Initialize 2D arrays for average latency ccomputation
+# Initialize 2D arrays for average latency computation
 AverageLatencies = [[0 for i in range(AmountOfPEs)] for j in range(AmountOfPEs)]
 #AverageLatenciesCounters = [[0 for i in range(AmountOfPEs)] for j in range(AmountOfPEs)]
 AverageLatenciesCounters = AverageLatencies
