@@ -210,7 +210,7 @@ package body PE_PKG is
 
         BuildHeaderLoop: for target in TargetPEsArray'range loop
 
-        	--report "    Compiling header for target PE " & integer'image(TargetPEsArray(target)) severity note;
+        	report "    Compiling header for target PE " & integer'image(TargetPEsArray(target)) severity note;
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
@@ -254,11 +254,11 @@ package body PE_PKG is
 
                 else
 
-                     --report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
+                     report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
 
                 end if;
 
-                --report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
+                report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
 
             end loop BuildFlitLoop;
 

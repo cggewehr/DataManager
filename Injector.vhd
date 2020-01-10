@@ -33,8 +33,8 @@ entity Injector is
         PEConfigFile          : string := "PESample.json";
         InjectorConfigFile    : string := "InjectorSample.json";
         PlatformConfigFile    : string := "PlatformSample.json";
-        InboundLogFilename    : string;
-        OutboundLogFilename   : string
+        InboundLogFilename    : string := "InLogTest.txt"; 
+        OutboundLogFilename   : string := "OutLogTest.txt"
 	);
 
 	port (

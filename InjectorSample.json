@@ -1,8 +1,12 @@
 {
-  "InjectorType": "FXD",
-  "FlowType": "RND",
-  "InjectionRate": 94,
-  "AmountOfSourcePEs": 1,
+  "InjectorType" : "FXD",
+  "FlowType" : "RND",
+  "InjectionRate" : 20,
+  "PEPos" : 5,
+  "APPID" : 9,
+  "ThreadID" : 47,
+  "AverageProcessingTimeInClockPulses" : 10,
+  "AmountOfSourcePEs" : 1,
   "SourcePEs": [
     1
   ],
@@ -69,8 +73,8 @@
       "BLANK"
     ]
   },
-  "timestampFlag" : 256,
-  "amountOfMessagesSentFlag": 512,
+  "timestampFlag" : 859993,
+  "amountOfMessagesSentFlag" : 580141,
   "RNGSeed1" : 32,
   "RNGSeed2" : 22
 }

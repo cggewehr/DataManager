@@ -4,7 +4,7 @@
   "InjectorClockPeriod" : 10,
   "InBufferSize" : 10,
   "OutBufferSize" : 10,
-  "PEPos": 22,
+  "PEPos": 2,
   "APPID": 9,
   "ThreadID": 47,
   "AverageProcessingTimeInClockPulses": 10
