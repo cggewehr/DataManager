@@ -183,7 +183,7 @@ def main():
         for source in range(amountOfPEs):
             if avgLatencies[source][target] != 0:
                 print("Average latency from PE ID " + str(source) + " to PE ID " + str(target) + " = " + str(
-                      avgLatencies[source][target]))
+                      avgLatencies[source][target]) + " ns")
 
 
     print("")

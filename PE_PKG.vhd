@@ -49,8 +49,7 @@ package PE_PKG is
     function FillTargetPayloadSizeArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return TargetPayloadSizeArray_t;
     function FillTargetMessageSizeArray(TargetPayloadSizeArray: TargetPayloadSizeArray_t ; HeaderSize: integer) return TargetMessageSizeArray_t;
     function FillAmountOfMessagesInBurstArray(InjectorJSONConfig: T_JSON ; AmountOfTargetPEs: integer) return AmountOfMessagesInBurstArray_t;
-    --function FillWrapperAddressTableArray(WrapperAddressTableJSON: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t;
-function FillWrapperAddressTableArray(PlatformJSONConfig: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t;
+    function FillWrapperAddressTableArray(PlatformJSONConfig: T_JSON ; TargetPEsArray: TargetPEsArray_t) return WrapperAddressTableArray_t;
     function BuildHeaders(InjectorJSONConfig: T_JSON ; PlatformJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return PayloadFlits_t;
     function FindMaxPayloadSize(TargetPayloadSizeArray: TargetPayloadSizeArray_t) return integer;
@@ -196,14 +195,17 @@ package body PE_PKG is
 
     -- Builds header for each target PE
     function BuildHeaders(InjectorJSONConfig: T_JSON ; PlatformJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return HeaderFlits_t is
+        
         variable Headers: HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
         variable headerFlitString: string(1 to 4);
         variable wrapperAddress: integer;
         variable timestampFlag: integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
         constant NUMBER_PROCESSORS_X: integer := jsonGetInteger(PlatformJSONConfig, "NUMBER_PROCESSORS_X");
-	-- Bus Adaptations
-	variable myID:		integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
-	variable myWrapper:	integer := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(myID));
+	    
+        -- Bus Adaptations
+	    variable myID:		integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
+        variable myWrapper:	integer := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(myID));
+
     begin
 
     	report "Compiling header flits" severity note;
@@ -225,38 +227,40 @@ package body PE_PKG is
                 if headerFlitString = "ADDR" then 
 
                     -- Get the wrapper address
-		    wrapperAddress := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
+                    wrapperAddress := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
 
-		    if wrapperAddress = 0 or wrapperAddress = myWrapper then --If the target is: In NoC OR In the same structure
+                    if wrapperAddress = 0 or wrapperAddress = myWrapper then --If the target is: In NoC OR In the same structure
 
-   	         	    Headers(target, flit)((DataWidth/2) - 1 downto 0 ):= RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
-			    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
+        	         	Headers(target, flit)((DataWidth/2) - 1 downto 0 ):= RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+            		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
 
-		    else  -- Combine the wrapper address with the PE address			
+        	    else  -- Combine the wrapper address with the PE address			
 
-			    -- Global XY coordinates @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
-			    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
-			    -- Wrapper XY coordinates @ lets significative bits
-			    Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
-		    end if;
+        		    -- Global XY coordinates @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
+        		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
 
-                elsif headerFlitString = "SIZE" then
+        		    -- Wrapper XY coordinates @ lets significative bits
+        		    Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
 
-                    Headers(target, flit) := std_logic_vector(to_unsigned(TargetPayloadSizeArray(target), DataWidth));
+        	    end if;
 
-                elsif headerFlitString = "TIME" then
+                    elsif headerFlitString = "SIZE" then
 
-                    Headers(target, flit) := std_logic_vector(to_unsigned(timestampFlag, DataWidth));
+                        Headers(target, flit) := std_logic_vector(to_unsigned(TargetPayloadSizeArray(target), DataWidth));
 
-                elsif headerFlitString = "BLNK" then
+                    elsif headerFlitString = "TIME" then
 
-                    Headers(target, flit) := (others => '0');
+                        Headers(target, flit) := std_logic_vector(to_unsigned(timestampFlag, DataWidth));
 
-                else
+                    elsif headerFlitString = "BLNK" then
 
-                     report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
+                        Headers(target, flit) := (others => '0');
 
-                end if;
+                    else
+
+                         report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
+
+                    end if;
 
                 report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
 
@@ -271,18 +275,25 @@ package body PE_PKG is
 
     -- Builds payload for each target PE
     function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: TargetPayloadSizeArray_t ; TargetPEsArray: TargetPEsArray_t) return PayloadFlits_t is
+
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
         variable Payloads : PayloadFlits_t(TargetPEsArray'range, 0 to MaxPayloadSize - 1);
         variable payloadFlitString : string(1 to 5);
         variable timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
         variable amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
+
+        -- RNG
+        variable RNGSeed1: integer := 22;
+        variable RNGSeed2: integer := 32;
+        variable RandomNumber: real;
+
     begin
 
-    	--report "Compiling payload flits" severity note;
+    	report "Compiling payload flits" severity note;
 
         BuildPayloadLoop: for target in TargetPayloadSizeArray'range loop
 
-        	--report "    Compiling payload for target PE " & integer'image(TargetPEsArray(target)) severity note;
+        	report "    Compiling payload for target PE " & integer'image(TargetPEsArray(target)) severity note;
 
             BuildFlitLoop: for flit in 0 to (MaxPayloadSize - 1) loop 
 
@@ -301,6 +312,7 @@ package body PE_PKG is
                 --                         "AVGPT" (Average processing time of a message received by the app being emulated by this PE),
                 --                         "TMSTP" (Timestamp of message being sent (to be set in real time, not in this function)),
                 --                         "AMMSG" (Amount of messages sent by this PE (also to be se in real time)),
+                --                         "RANDO" (Randomize every bit)
                 --                         "BLANK" (Fills with zeroes)
                 
                 if payloadFlitString = "PEPOS" then
@@ -319,6 +331,7 @@ package body PE_PKG is
 
                     --Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjectorJSONConfig, "AverageProcessingTimeInClockPulses"), DataWidth));
                     Payloads(target, flit) := (others => '1');
+
                 elsif payloadFlitString = "TMSTP" then
 
                     -- Flags for "real time" processing
@@ -329,13 +342,33 @@ package body PE_PKG is
                     -- Flags for "real time" processing
                     Payloads(target, flit) := std_logic_vector(to_unsigned(amountOfMessagesSentFlag, DataWidth));
 
+                elsif payloadFlitString = "RANDO" then
+
+                    -- Randomizes each bit of current flit
+                    for i in 0 to DataWidth - 1 loop
+
+                        -- RandomNumber <= (0.0 < RNG < 1.0)
+                        Uniform(RNGSeed1, RNGSeed2, RandomNumber);
+
+                        if RandomNumber < 0.5 then
+
+                            Payloads(target, flit)(i) := '0';
+
+                        else
+
+                            Payloads(target, flit)(i) := '1';
+
+                        end if;
+
+                    end loop;
+
                 elsif payloadFlitString = "BLANK" then
 
                     Payloads(target, flit) := (others=>'0');
 
                 end if;
 
-                --report "        Flit " & integer'image(flit) & " of payload of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & payloadFlitString & " = " & integer'image(to_integer(unsigned(Payloads(target, flit)))) severity note;
+                report "        Flit " & integer'image(flit) & " of payload of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & payloadFlitString & " = " & integer'image(to_integer(unsigned(Payloads(target, flit)))) severity note;
 
             end loop BuildFlitLoop;
 
@@ -366,7 +399,7 @@ package body PE_PKG is
     end function FindMaxPayloadSize;
 
 
-    -- Uniform procedure, stolen from GHDL ieee.math_real (https://github.com/ghdl/ghdl/blob/master/libraries/openieee/math_real-body.vhdl)
+    -- Borrowed from GHDL ieee.math_real implementation (https://github.com/ghdl/ghdl/blob/master/libraries/openieee/math_real-body.vhdl)
     -- Returns a pseudo-random value between 0 and 1 (Algorithm from: Pierre L'Ecuyer, CACM June 1988 Volume 31 Number 6 page 747 figure 3)
     procedure UNIFORM (SEED1, SEED2: inout POSITIVE; X: out REAL) is
         variable z, k : Integer;

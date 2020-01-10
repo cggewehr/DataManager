@@ -419,14 +419,15 @@ begin
                                 -- If this is the first flit in the message, saves current ClkCounter (to be sent as a flit when a payload flit is equal to the timestampFlag)
                                 if injectionCounter = 0 then
 
-                                    firstFlitOutTimestamp := std_logic_vector(to_unsigned(clockCounter, DataWidth));
+                                    --firstFlitOutTimestamp := std_logic_vector(to_unsigned(clockCounter, DataWidth));
+                                    firstFlitOutTimestamp := std_logic_vector(to_unsigned((now / 1 ns), DataWidth));
 
                                     -- Write to log file ( | target ID | source ID | msg size | timestamp | )
-                                    --write(OutboundLogLine, integer'image(to_integer(unsigned(amountOfMessagesSent))) & " ");
                                     write(OutboundLogLine, integer'image(TargetPEsArray(currentTargetPE)) & " ");
                                     write(OutboundLogLine, integer'image(PEPos) & " ");
                                     write(OutboundLogLine, integer'image(TargetMessageSizeArray(currentTargetPE)) & " ");
-                                    write(OutboundLogLine, integer'image(clockCounter));
+                                    --write(OutboundLogLine, integer'image(clockCounter));
+                                    write(OutboundLogLine, integer'image(now / 1 ns));
                                     writeline(OutboundLog, OutboundLogLine);
 
                                     amountOfMessagesSent := amountOfMessagesSent + 1;
@@ -626,7 +627,8 @@ begin
                         write(InboundLogLine, integer'image(latestSourceID) & " ");
                         write(InboundLogLine, integer'image(currentMessageSize) & " ");
                         write(InboundLogLine, integer'image(outputTimestamp) & " ");
-                        write(InboundLogLine, integer'image(clockCounter));
+                        --write(InboundLogLine, integer'image(clockCounter));
+                        write(InboundLogLine, integer'image(now / 1 ns));
                         writeline(InboundLog, InboundLogLine);
 
                         -- Signals a message has been received to DPD injector and updates counters
