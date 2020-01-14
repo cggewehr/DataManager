@@ -29,14 +29,14 @@ class Injector:
 		for i in range(len(self.TargetPEs)):
 			payload_aux = [			#Default
       			"PEPOS",
-      			"APPID",
-     			"THDID",
-      			"AVGPT",
       			"TMSTP",
-      			"AMMSG",
+     			"PEPOS",
+      			"PEPOS",
+      			"PEPOS",
+      			"PEPOS",
       			]
 			for j in range(int(self.TargetPayloadSize[i])-6):
-				payload_aux.append("BLANK"); #Preenche com BLANK #Default
+				payload_aux.append("PEPOS"); #Preenche com PEPOS #Default
 			self.Headers["Header" + self.TargetPEs[i]] = ["ADDR", "SIZE"] 	#Default
 			self.Payload["Payload" + self.TargetPEs[i]]= payload_aux
 		pass
