@@ -1,0 +1,9 @@
+{
+    "AppID": 0,
+    "AverageProcessingTimeInClockPulses": 1,
+    "InBufferSize": 128,
+    "InjectorClockPeriod": 20,
+    "OutBufferSize": 128,
+    "PEPos": 4,
+    "ThreadID": 4
+}

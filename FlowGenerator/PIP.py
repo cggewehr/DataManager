@@ -66,15 +66,11 @@ def main():
     # Link Allocation Map to platform 
     Setup.setAllocationMap(AllocationMap)
 
-    # Sets 
+    # Makes PE and Injector objects
     Setup.mapToPlatform()
 
-    print(len(Setup.Injectors))
-    print(len(Setup.PEs))
-    print(Setup.AmountOfPEs)
-
     # Generate project JSON config files
-    Setup.generateJSON()
+    Setup.generateJSON("PIP/Flow/")
 
 # Forces entry point
 if __name__ == "__main__":
