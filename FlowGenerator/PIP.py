@@ -1,20 +1,20 @@
 import AppComposer
 import PlatformComposer
-#import SetupA
+import sys
 
-# Entry point
+# Entry point (Expects clock frequency as $1)
 def main():
 
     # Creates base 2x2 NoC 
-    Setup = PlatformComposer.Platform((2,2))
+    Setup = PlatformComposer.Platform((2,2), int(sys.argv[1]))
 
     # Adds bus containing 5 PEs @ base NoC position (1,0)
     BusA = PlatformComposer.Bus(5)
-    Setup.addStructure(Structure = BusA, WrapperLocationInBaseNoc = (1,0) )
+    Setup.addStructure(Structure = BusA, WrapperLocationInBaseNoc = (1,0))
 
     # Adds bus containing 5 PEs @ base NoC position (1, 1)
     BusB = PlatformComposer.Bus(5)
-    Setup.addStructure(Structure = BusB, WrapperLocationInBaseNoc = (1,1) )
+    Setup.addStructure(Structure = BusB, WrapperLocationInBaseNoc = (1,1))
 
     # Make Application
     PIP = AppComposer.Application(AppID = 0, AppName = "PIP")
@@ -70,7 +70,8 @@ def main():
     Setup.mapToPlatform()
 
     # Generate project JSON config files
-    Setup.generateJSON("PIP/Flow/")
+    Setup.generateJSON("PIP/flow/")
+
 
 # Forces entry point
 if __name__ == "__main__":

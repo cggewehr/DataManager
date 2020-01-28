@@ -1,12 +1,12 @@
 import AppComposer
 import PlatformComposer
-#import SetupA
+import sys
 
 # Entry point
 def main():
 
     # Creates base 4x4 NoC 
-    Setup = PlatformComposer.Platform((4,4))
+    Setup = PlatformComposer.Platform((4,4), int(sys.argv[1]))
 
     # Make Application
     VOPD = AppComposer.Application(AppID = 0, AppName = "VOPD")
@@ -80,7 +80,7 @@ def main():
     Setup.mapToPlatform()
 
     # Generate project JSON config files
-    Setup.generateJSON("VOPD/Flow/")
+    Setup.generateJSON("VOPD/flow/")
 
 # Forces entry point
 if __name__ == "__main__":

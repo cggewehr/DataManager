@@ -7,15 +7,17 @@ import AppComposer
 class Platform:
 
     # Constructor
-    def __init__(self, BaseNoCDimensions):
+    def __init__(self, BaseNoCDimensions, ReferenceClock):
 
         self.AllocationMap = dict()
         self.Applications = []
+        self.BaseNoCDimensions = BaseNoCDimensions
         self.BaseNoC = [[None for x in range(BaseNoCDimensions[0])] for y in range(BaseNoCDimensions[1])]
         self.PEs = dict()
         self.Injectors = dict()
         self.WrapperAddresses = dict()
         self.AmountOfPEs = BaseNoCDimensions[0] * BaseNoCDimensions[1]
+        self.ReferenceClock = ReferenceClock  # In MHz
 
 
     # Adds structure (Bus or Crossbar) to base NoC
@@ -37,7 +39,19 @@ class Platform:
     # TODO: Set addresses in PEAddresses arrays inside every Structure object
     def setPEAddresses(self):
 
-        pass
+        #NUMBER_PROCESSORS_X = ceil(sqrt(self.AmountOfPEs))
+        #SquareNoC = [[None for x in range(NUMBER_PROCESSORS_X)] for y in range(NUMBER_PROCESSORS_X)]
+
+        # Set NoC PE addresses
+
+
+        # Set 1st of wrapper PE addresses
+
+
+        # Set Remaining PEs on wrapper
+
+
+        # WrapperAddresses = []
 
     # Adds an application (containing various Thread objects) to platform
     def addApplication(self, Application):
@@ -61,12 +75,13 @@ class Platform:
 
                 # Generates PE and Injector objects and and populates
                 PEPos = self.AllocationMap[(self.Applications[i].AppID, self.Applications[i].Threads[j].ThreadID)]
+                InjectorClockPeriod = self.ReferenceClock  # ReferenceClock given in MHz
 
                 if PEPos >= self.AmountOfPEs:
                     print("Warning: Found PEPos value higher than total amount of PEs\n")
 
-                self.PEs[PEPos] = PE(PEPos=PEPos, AppID=self.Applications[i].AppID, ThreadID=self.Applications[i].Threads[j].ThreadID)
-                self.Injectors[PEPos] = Injector(Thread=self.Applications[i].Threads[j])
+                self.PEs[PEPos] = PE(PEPos=PEPos, AppID=self.Applications[i].AppID, ThreadID=self.Applications[i].Threads[j].ThreadID, InjectorClockPeriod=InjectorClockPeriod)
+                self.Injectors[PEPos] = Injector(Thread=self.Applications[i].Threads[j], InjectorClockPeriod=InjectorClockPeriod)
 
 
     # Generate JSON config files for PEs, Injectors and Platform
@@ -81,14 +96,14 @@ class Platform:
             # Write Injector JSON config file
             if i in self.Injectors:
 
-                f = open(Path + "InjectorConfig" + str(i) + ".json", 'w')
+                f = open(Path + "INJ" + str(i) + ".json", 'w')
                 f.write(self.Injectors[i].toJSON())
                 f.close()
 
             # Write PE JSON config file
             if i in self.PEs:
 
-                f = open(Path + "PEConfig" + str(i) + ".json", 'w')
+                f = open(Path + "PE" + str(i) + ".json", 'w')
                 f.write(self.PEs[i].toJSON())
                 f.close()
 
@@ -107,7 +122,7 @@ class Platform:
 class Structure:
 
     def __init__(self, StructureType, AmountOfPEs):
-    	
+        
         self.StructureType = StructureType
         self.AmountOfPEs = AmountOfPEs
         self.PEAddresses = [None for i in range(AmountOfPEs)]
@@ -142,11 +157,11 @@ class Crossbar(Structure):
 
 class PE:
 
-    def __init__(self, PEPos, AppID, ThreadID):
+    def __init__(self, PEPos, AppID, ThreadID, InjectorClockPeriod):
 
         self.CommStructure: "NOC"  # Default
         self.InjectorType: "FXD"  # Default
-        self.InjectorClockPeriod = 20  # In ns, corresponds to 50 MHz frequency
+        self.InjectorClockPeriod = int((1/InjectorClockPeriod) * 100)  # In nanoseconds
         self.InBufferSize = 128  # Default
         self.OutBufferSize = 128  # Default
         self.PEPos = PEPos
@@ -162,17 +177,27 @@ class PE:
 
 class Injector:
 
-    def __init__(self, Thread):
+    def __init__(self, Thread, InjectorClockPeriod):
 
         # Gets position value from AllocationTable dictionary
         self.PEPos = Thread.ParentApplication.ParentPlatform.AllocationMap[(Thread.ParentApplication.AppID, Thread.ThreadID)]
         self.AppID = Thread.ParentApplication.AppID
         self.ThreadID = Thread.ThreadID
 
-        # LinkBandwidth = DataWidth * ClockFrequency (Assuming 50 MHz -> 20 ns period)
+        # LinkBandwidth = DataWidth * ClockFrequency 
         # Consumed Bandwidth = LinkBandwidth * InjectionRate
         # InjectionRate = (ConsumedBandwidth)/(DataWidth * ClockFrequency)
-        self.InjectionRate = int((Thread.TotalBandwidth * 1_000_000 * 100) / (32 * 50_000_000))
+        self.InjectionRate = int((Thread.TotalBandwidth * 100) / (32 * InjectorClockPeriod))
+
+        if self.InjectionRate == 0 and Thread.TotalBandwidth != 0:
+
+            print("Warning: Injection rate = 0% at injector " + str(self.PEPos) + ", setting it to 1%")
+            self.InjectionRate = 1
+
+        if self.InjectionRate > 100:
+
+            print("Warning: Injection rate > 100% (" + str(self.InjectionRate) + "%) at injector " + str(self.PEPos) + ", setting it to 100%")
+            self.InjectionRate = 100
 
         self.TargetPEs = []
         self.AmountOfMessagesInBurst = []
@@ -185,21 +210,14 @@ class Injector:
 
         self.TargetPayloadSize = [126] * len(self.TargetPEs)
 
-        #self.PEPos = PEPos
-        #self.AppID = AppID
-        #self.ThreadID = ThreadID
-        #self.InjectionRate = InjectionRate
         self.SourcePEs = [0]  # Default
         self.SourcePayloadSize = 32  # Default
-        #self.TargetPEs = TargetPEs
-        #self.TargetPayloadSize = TargetPayloadSize
-        #self.AmountOfMessagesInBurst = AmountOfMessagesInBurst
         self.AmountOfSourcePEs = len(self.SourcePEs)
         self.AmountOfTargetPEs = len(self.TargetPEs)
         self.AverageProcessingTimeInClockPulses = 1  # Default
         self.InjectorType = "FXD"  # Default
         self.FlowType = "RND"  # Default
-        self.HeaderSize = "2"  # Default
+        self.HeaderSize = 2  # Default
         self.AmountOfMessagesInBurst = 1  # Default
         self.timestampFlag = 1984626850  # Default
         self.amountOfMessagesSentFlag = 2101596287  # Default
