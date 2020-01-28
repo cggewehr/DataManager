@@ -53,6 +53,8 @@ class Platform:
 
         # WrapperAddresses = []
 
+        pass
+
     # Adds an application (containing various Thread objects) to platform
     def addApplication(self, Application):
 
