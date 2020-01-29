@@ -15,45 +15,142 @@ class Platform:
         self.BaseNoC = [[None for x in range(BaseNoCDimensions[0])] for y in range(BaseNoCDimensions[1])]
         self.PEs = dict()
         self.Injectors = dict()
-        self.WrapperAddresses = dict()
+        self.WrapperAddresses = dict()  # Maps a PEPos value to its wrapper's address in base NoC
         self.AmountOfPEs = BaseNoCDimensions[0] * BaseNoCDimensions[1]
+        self.AmountOfWrappers = 0
         self.ReferenceClock = ReferenceClock  # In MHz
+
+        # Generate initial PE objects at every NoC address (to be replaced by a wrapper when a structure is added)
+        i = 0
+        for y in range(BaseNoCDimensions[1]):
+
+            for x in range(BaseNoCDimensions[0]):
+
+                BaseNoc[x][y] = PE(PEPos=i, AppID=None, ThreadID=None, InjectorClockPeriod=self.ReferenceClock)
+                PEs[i] = BaseNoC[x][y]
+
+                i += 1
 
 
     # Adds structure (Bus or Crossbar) to base NoC
     def addStructure(self, Structure, WrapperLocationInBaseNoc: tuple):
 
         # Checks for a present wrapper at given location in base NoC
-        if self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]] == None:
+        if isinstance(self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]], Structure):
 
-            # Inserts given structure into base NoC
-            self.AmountOfPEs += Structure.AmountOfPEs - 1  # Adds PEs from new structure and remove a PE from base NoC to make room for a wrapper
-            self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]] = Structure
-
-        else:
-
+            # There already is a wrapper at this position in base NoC
             print("Error: There already is a wrapper at given location " + str(WrapperLocationInBaseNoc) + " \n")
             exit(1)
 
+        else:
 
-    # TODO: Set addresses in PEAddresses arrays inside every Structure object
-    def setPEAddresses(self):
+            # Inserts given structure into base NoC
+            self.AmountOfPEs += Structure.AmountOfPEs - 1  # Adds PEs from new structure and remove a PE from base NoC to make room for a wrapper
+            self.AmountOfWrappers += 1
+            self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]] = Structure
 
-        #NUMBER_PROCESSORS_X = ceil(sqrt(self.AmountOfPEs))
-        #SquareNoC = [[None for x in range(NUMBER_PROCESSORS_X)] for y in range(NUMBER_PROCESSORS_X)]
-
-        # Set NoC PE addresses
+            # Updates all PEPos values (platform-wide)
+            self.updatePEAddresses()
 
 
-        # Set 1st of wrapper PE addresses
+    # Sets PEPos values according to the "square NoC" algorithm
+    def updatePEAddresses(self):
 
+        SquareNoCBound = ceil(sqrt(self.AmountOfPEs))
+
+        # Set NoC 1st of wrapper PE addresses
+        x_base = 0
+        y_base = 0
+        x_square = 0
+        y_square = 0
+        for i in range(self.BaseNoCDimensions[0]*self.BaseNoCDimensions[1]):  # Loops through base NoC
+
+            # Unique network ID based on square NoC algorithm
+            PEPos = (y_square * SquareNoCBound) + x_square
+            self.WrapperAddresses[PEPos] = (y_base * self.BaseNoCDimensions[0]) + x_base
+
+            # If current base NoC position is a PE (not a wrapper), set its address
+            if isinstance(self.BaseNoC[x_base][y_base], PE):
+
+                self.BaseNoC[x_base][y_base].PEPos = PEPos
+                self.PEs[PEPos] = self.BaseNoC[x_base][y_base]
+
+            # If current base NoC position is a wrapper, sets address for the first element of its corresponding structure
+            elif isinstance(self.BaseNoC[x_base][y_base], Structure):
+
+                self.BaseNoC[x_base][y_base].PEs[0].PEPos = PEPos
+                self.PEs[PEPos] = self.BaseNoC[x_base][y_base].PEs[0]
+
+            # Increment base NoC x & y indexes
+            if x_base == self.BaseNoCDimensions[0] - 1:
+
+                x_base = 0
+                y_base += 1
+
+            else:
+
+                x_base += 1
+
+            # Increment square NoC x & y indexes
+            if x_square == SquareNoCBound:
+
+                x_square = 0
+                y_square += 1
+
+            else:
+
+                x_square += 1
 
         # Set Remaining PEs on wrapper
+        x_base = 0
+        y_base = 0
+        x_square = 0
+        y_square = self.BaseNoCDimensions[1]
+        x_square_limit = self.BaseNoCDimensions[0]
+        y_square_limit = self.BaseNoCDimensions[1]
+        for i in range(self.BaseNoCDimensions[0]*self.BaseNoCDimensions[1]):  # Loops through base NoC
 
+            # If current base NoC position is a wrapper, sets address for all the elements contained in its corresponding structure, except the first
+            if isinstance(self.BaseNoC[x_base][y_base], Structure):
 
-        # WrapperAddresses = []
+                for j in range(self.BaseNoC[x_base][y_base].PEs - 1):
 
-        pass
+                    # Update PEPos vale at current PE object
+                    PEPos = (y_square * SquareNoCBound) + x_square
+                    self.BaseNoC[x_base][y_base].PEs[j + 1].PEPos = PEPos
+                    self.WrapperAddresses[PEPos] = (y_base * self.BaseNoCDimensions[0]) + x_base
+
+                    # Updates reference to current PE object at master PE dictionary
+                    self.PEs[PEPos] = self.BaseNoC[x_base][y_base].PEs[j + 1]
+
+                    # Increment square NoC x & y indexes
+                    if x_square == x_square_limit and y_square == 0:
+
+                        x_square = 0
+                        x_square_limit += 1
+                        y_square_limit += 1
+                        y_square = y_square_limit
+
+                    else:
+
+                        if x_square < x_square_limit:
+
+                            x_square += 1
+
+                        elif y_square > 0:
+
+                            y_square -= 1
+
+            # Increment base NoC x & y indexes
+            if x_base == self.BaseNoCDimensions[0]:
+
+                x_base = 0
+                y_base += 1
+
+            else:
+
+                x_base += 1
+
 
     # Adds an application (containing various Thread objects) to platform
     def addApplication(self, Application):
@@ -68,7 +165,7 @@ class Platform:
         self.AllocationMap = AllocationMap
 
 
-    # Sets PEPos values according to Allocation Map
+    # TODO: Update PE objects with application and thread info
     def mapToPlatform(self):
 
         for i in range(len(self.Applications)):
@@ -126,21 +223,20 @@ class Structure:
     def __init__(self, StructureType, AmountOfPEs):
         
         self.StructureType = StructureType
-        self.AmountOfPEs = AmountOfPEs
-        self.PEAddresses = [None for i in range(AmountOfPEs)]
+        self.PEs = [PE(PEPos=i,AppID=None, ThreadID=None, InjectorClockPeriod=None) for i in range(AmountOfPEs)]
 
 
     def setPE(self, PENumber, PEObject):
 
-        self.PEAddresses[PENumber] = PEObject
+        self.PEs[PENumber] = PEObject
 
 
     def setPEs(self, PEsArray):
 
-        self.PEAddresses = PEsArray
-
-        if len(self.PEAddresses) != len(PEsArray):
+        if len(self.PEs) != len(PEsArray):
             print("Warning: Given array has unexpected length\n")
+
+        self.PEs = PEsArray
 
 
 class Bus(Structure):
