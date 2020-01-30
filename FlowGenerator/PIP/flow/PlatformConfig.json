@@ -1,0 +1,22 @@
+{
+    "AmountOfPEs": 9,
+    "AmountOfWrappers": 2,
+    "BaseNoCDimensions": [
+        2,
+        2
+    ],
+    "NUMBER_PROCESSORS_X": 2,
+    "NUMBER_PROCESSORS_Y": 2,
+    "ReferenceClock": 10,
+    "WrapperAddresses": [
+        0,
+        1,
+        3,
+        2,
+        3,
+        3,
+        1,
+        1,
+        3
+    ]
+}

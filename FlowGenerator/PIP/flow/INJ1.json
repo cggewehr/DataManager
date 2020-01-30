@@ -1,5 +1,7 @@
 {
-    "AmountOfMessagesInBurst": 1,
+    "AmountOfMessagesInBurst": [
+        64
+    ],
     "AmountOfSourcePEs": 1,
     "AmountOfTargetPEs": 1,
     "AppID": 0,
@@ -12,7 +14,7 @@
             "SIZE"
         ]
     },
-    "InjectionRate": 4,
+    "InjectionRate": 20,
     "InjectorType": "FXD",
     "PEPos": 1,
     "Payload": {
@@ -145,8 +147,8 @@
             "RANDO"
         ]
     },
-    "RNGSeed1": 131906819,
-    "RNGSeed2": 1795074909,
+    "RNGSeed1": 393055315,
+    "RNGSeed2": 1928297726,
     "SourcePEs": [
         0
     ],

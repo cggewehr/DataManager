@@ -1,7 +1,8 @@
 import json
 import random
 import os
-import AppComposer
+import math
+import copy
 
 
 class Platform:
@@ -17,6 +18,8 @@ class Platform:
         self.Injectors = dict()
         self.WrapperAddresses = dict()  # Maps a PEPos value to its wrapper's address in base NoC
         self.AmountOfPEs = BaseNoCDimensions[0] * BaseNoCDimensions[1]
+        self.NUMBER_PROCESSORS_X = self.BaseNoCDimensions[0]
+        self.NUMBER_PROCESSORS_Y = self.BaseNoCDimensions[1]
         self.AmountOfWrappers = 0
         self.ReferenceClock = ReferenceClock  # In MHz
 
@@ -26,14 +29,14 @@ class Platform:
 
             for x in range(BaseNoCDimensions[0]):
 
-                BaseNoc[x][y] = PE(PEPos=i, AppID=None, ThreadID=None, InjectorClockPeriod=self.ReferenceClock)
-                PEs[i] = BaseNoC[x][y]
+                self.BaseNoC[x][y] = PE(PEPos=i, AppID=None, ThreadID=None, InjectorClockPeriod=self.ReferenceClock)
+                self.PEs[i] = self.BaseNoC[x][y]
 
                 i += 1
 
 
     # Adds structure (Bus or Crossbar) to base NoC
-    def addStructure(self, Structure, WrapperLocationInBaseNoc: tuple):
+    def addStructure(self, NewStructure, WrapperLocationInBaseNoc: tuple):
 
         # Checks for a present wrapper at given location in base NoC
         if isinstance(self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]], Structure):
@@ -45,18 +48,20 @@ class Platform:
         else:
 
             # Inserts given structure into base NoC
-            self.AmountOfPEs += Structure.AmountOfPEs - 1  # Adds PEs from new structure and remove a PE from base NoC to make room for a wrapper
+            self.AmountOfPEs += len(NewStructure.PEs) - 1  # Adds PEs from new structure and remove a PE from base NoC to make room for a wrapper
             self.AmountOfWrappers += 1
-            self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]] = Structure
+            self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]] = NewStructure
+
+            NewStructure.AddressInBaseNoC = (WrapperLocationInBaseNoc[1] * self.BaseNoCDimensions[0]) + WrapperLocationInBaseNoc[0]
 
             # Updates all PEPos values (platform-wide)
             self.updatePEAddresses()
 
 
-    # Sets PEPos values according to the "square NoC" algorithm
+    # Sets PEPos values according to the square NoC algorithm
     def updatePEAddresses(self):
 
-        SquareNoCBound = ceil(sqrt(self.AmountOfPEs))
+        SquareNoCBound = math.ceil(math.sqrt(self.AmountOfPEs))
 
         # Set NoC 1st of wrapper PE addresses
         x_base = 0
@@ -66,7 +71,9 @@ class Platform:
         for i in range(self.BaseNoCDimensions[0]*self.BaseNoCDimensions[1]):  # Loops through base NoC
 
             # Unique network ID based on square NoC algorithm
-            PEPos = (y_square * SquareNoCBound) + x_square
+            #PEPos = (y_square * SquareNoCBound) + x_square
+            PEPos = (y_base * SquareNoCBound) + x_base  # TODO
+            #print(str(PEPos) + " (" + str(x_base) + "," + str(y_base) + ") (" + str(x_square) + "," + str(y_square) + ")")
             self.WrapperAddresses[PEPos] = (y_base * self.BaseNoCDimensions[0]) + x_base
 
             # If current base NoC position is a PE (not a wrapper), set its address
@@ -113,10 +120,12 @@ class Platform:
             # If current base NoC position is a wrapper, sets address for all the elements contained in its corresponding structure, except the first
             if isinstance(self.BaseNoC[x_base][y_base], Structure):
 
-                for j in range(self.BaseNoC[x_base][y_base].PEs - 1):
+                for j in range(len(self.BaseNoC[x_base][y_base].PEs) - 1):
 
                     # Update PEPos vale at current PE object
-                    PEPos = (y_square * SquareNoCBound) + x_square
+                    PEPos = (y_square * SquareNoCBound) + x_square  # TODO
+                    #PEPos = (y_base * SquareNoCBound) + x_base  # TODO
+                    #print(str(PEPos) + " (" + str(x_base) + "," + str(y_base) + ") (" + str(x_square) + "," + str(y_square) + ")")
                     self.BaseNoC[x_base][y_base].PEs[j + 1].PEPos = PEPos
                     self.WrapperAddresses[PEPos] = (y_base * self.BaseNoCDimensions[0]) + x_base
 
@@ -142,7 +151,7 @@ class Platform:
                             y_square -= 1
 
             # Increment base NoC x & y indexes
-            if x_base == self.BaseNoCDimensions[0]:
+            if x_base == self.BaseNoCDimensions[0] - 1:
 
                 x_base = 0
                 y_base += 1
@@ -152,11 +161,23 @@ class Platform:
                 x_base += 1
 
 
+    # Find matching
+    def getPEPos(self, Thread):
+
+        for i in range(self.AmountOfPEs):
+
+            if self.AllocationMap[i].ParentApplication.AppID == Thread.ParentApplication.AppID and self.AllocationMap[i].ThreadID == Thread.ThreadID:
+
+                return i
+
+        print("Warning: No mathcing PE found for given thread")
+
     # Adds an application (containing various Thread objects) to platform
     def addApplication(self, Application):
 
-        self.Applications.append(Application)
+        Application.AppID = len(self.Applications)
         Application.ParentPlatform = self
+        self.Applications.append(Application)
 
 
     # Sets allocation map (Maps AppID and ThreadID to an unique PE)
@@ -165,22 +186,17 @@ class Platform:
         self.AllocationMap = AllocationMap
 
 
-    # TODO: Update PE objects with application and thread info
+    # Updates PE objects with application and thread info
     def mapToPlatform(self):
 
-        for i in range(len(self.Applications)):
+        for i in range(len(self.PEs)):
 
-            for j in range(len(self.Applications[i].Threads)):
+            if i in self.AllocationMap:
 
-                # Generates PE and Injector objects and and populates
-                PEPos = self.AllocationMap[(self.Applications[i].AppID, self.Applications[i].Threads[j].ThreadID)]
-                InjectorClockPeriod = self.ReferenceClock  # ReferenceClock given in MHz
-
-                if PEPos >= self.AmountOfPEs:
-                    print("Warning: Found PEPos value higher than total amount of PEs\n")
-
-                self.PEs[PEPos] = PE(PEPos=PEPos, AppID=self.Applications[i].AppID, ThreadID=self.Applications[i].Threads[j].ThreadID, InjectorClockPeriod=InjectorClockPeriod)
-                self.Injectors[PEPos] = Injector(Thread=self.Applications[i].Threads[j], InjectorClockPeriod=InjectorClockPeriod)
+                Thread = self.AllocationMap[i]
+                self.PEs[i].AppID = Thread.ParentApplication.AppID
+                self.PEs[i].ThreadID = Thread.ThreadID
+                self.Injectors[i] = Injector(PEPos=self.PEs[i].PEPos, Thread=Thread, InjectorClockPeriod=self.ReferenceClock)
 
 
     # Generate JSON config files for PEs, Injectors and Platform
@@ -207,23 +223,43 @@ class Platform:
                 f.close()
 
         # TODO: Write Platform config file
-
-        #f = open(Path + "PlatformConfig" + str(i) + ".json", 'w')
-        #f.write(self.toJSON())
-        #f.close()
+        f = open(Path + "PlatformConfig.json", 'w')
+        f.write(self.toJSON())
+        f.close()
 
 
     def toJSON(self):
 
-        return json.dumps(self.__dict__, sort_keys=True, indent=4)
+        return json.dumps(self.toDict(), sort_keys=True, indent=4)
 
+
+    def __str__(self):
+
+        pass
+
+
+#   Returns all serializable
+    def toDict(self):
+
+        SerializableObject = copy.deepcopy(self)
+
+        del SerializableObject.PEs
+        del SerializableObject.Applications
+        del SerializableObject.Injectors
+        del SerializableObject.BaseNoC
+        del SerializableObject.AllocationMap
+
+        SerializableObject.WrapperAddresses = [self.WrapperAddresses[i] for i in range(len(self.WrapperAddresses))]
+
+        return SerializableObject.__dict__
 
 class Structure:
 
     def __init__(self, StructureType, AmountOfPEs):
         
         self.StructureType = StructureType
-        self.PEs = [PE(PEPos=i,AppID=None, ThreadID=None, InjectorClockPeriod=None) for i in range(AmountOfPEs)]
+        self.PEs = [PE(PEPos=i, AppID=None, ThreadID=None, InjectorClockPeriod=None) for i in range(AmountOfPEs)]
+        self.AddressInBaseNoC = None
 
 
     def setPE(self, PENumber, PEObject):
@@ -237,6 +273,11 @@ class Structure:
             print("Warning: Given array has unexpected length\n")
 
         self.PEs = PEsArray
+
+
+    def __str__(self):
+
+        return "\nStructureType"
 
 
 class Bus(Structure):
@@ -257,9 +298,14 @@ class PE:
 
     def __init__(self, PEPos, AppID, ThreadID, InjectorClockPeriod):
 
-        self.CommStructure: "NOC"  # Default
-        self.InjectorType: "FXD"  # Default
-        self.InjectorClockPeriod = int((1/InjectorClockPeriod) * 100)  # In nanoseconds
+        self.CommStructure = "NOC"  # Default
+        self.InjectorType = "FXD"  # Default
+
+        if InjectorClockPeriod is None:
+            self.InjectorClockPeriod = None
+        else:
+            self.InjectorClockPeriod = int((1/InjectorClockPeriod) * 100)  # In nanoseconds
+
         self.InBufferSize = 128  # Default
         self.OutBufferSize = 128  # Default
         self.PEPos = PEPos
@@ -275,10 +321,10 @@ class PE:
 
 class Injector:
 
-    def __init__(self, Thread, InjectorClockPeriod):
+    def __init__(self, PEPos, Thread, InjectorClockPeriod):
 
         # Gets position value from AllocationTable dictionary
-        self.PEPos = Thread.ParentApplication.ParentPlatform.AllocationMap[(Thread.ParentApplication.AppID, Thread.ThreadID)]
+        self.PEPos = PEPos
         self.AppID = Thread.ParentApplication.AppID
         self.ThreadID = Thread.ThreadID
 
@@ -303,7 +349,7 @@ class Injector:
         # Determines TargetPEs and AmountOfMessagesInBurst arrays based on required bandwidth
         for i in range(len(Thread.Targets)):
 
-            self.TargetPEs.append(Thread.ParentApplication.ParentPlatform.AllocationMap[(Thread.ParentApplication.AppID, Thread.Targets[i].TargetThreadID)])
+            self.TargetPEs.append(Thread.ParentApplication.ParentPlatform.getPEPos(Thread.Targets[i].TargetThread))
             self.AmountOfMessagesInBurst.append(Thread.Targets[i].Bandwidth)
 
         self.TargetPayloadSize = [126] * len(self.TargetPEs)
@@ -316,7 +362,6 @@ class Injector:
         self.InjectorType = "FXD"  # Default
         self.FlowType = "RND"  # Default
         self.HeaderSize = 2  # Default
-        self.AmountOfMessagesInBurst = 1  # Default
         self.timestampFlag = 1984626850  # Default
         self.amountOfMessagesSentFlag = 2101596287  # Default
         self.RNGSeed1 = random.randint(0, 2147483646)  # Random Value
@@ -347,7 +392,3 @@ class Injector:
 
         return json.dumps(self.__dict__, sort_keys=True, indent=4)
 
-
-    def __str__(self):
-
-        pass

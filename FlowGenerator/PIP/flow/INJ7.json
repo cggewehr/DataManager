@@ -1,5 +1,5 @@
 {
-    "AmountOfMessagesInBurst": 1,
+    "AmountOfMessagesInBurst": [],
     "AmountOfSourcePEs": 1,
     "AmountOfTargetPEs": 0,
     "AppID": 0,
@@ -11,8 +11,8 @@
     "InjectorType": "FXD",
     "PEPos": 7,
     "Payload": {},
-    "RNGSeed1": 1907279466,
-    "RNGSeed2": 728768341,
+    "RNGSeed1": 955084700,
+    "RNGSeed2": 1623614542,
     "SourcePEs": [
         0
     ],
