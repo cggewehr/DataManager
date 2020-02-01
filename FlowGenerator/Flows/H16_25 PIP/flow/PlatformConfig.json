@@ -1,0 +1,38 @@
+{
+    "AmountOfPEs": 25,
+    "AmountOfWrappers": 3,
+    "BaseNoCDimensions": [
+        3,
+        3
+    ],
+    "NUMBER_PROCESSORS_X": 3,
+    "NUMBER_PROCESSORS_Y": 3,
+    "ReferenceClock": 20,
+    "WrapperAddresses": [
+        0,
+        1,
+        2,
+        5,
+        8,
+        3,
+        4,
+        5,
+        2,
+        8,
+        6,
+        7,
+        8,
+        2,
+        8,
+        2,
+        2,
+        2,
+        2,
+        8,
+        5,
+        5,
+        5,
+        5,
+        8
+    ]
+}

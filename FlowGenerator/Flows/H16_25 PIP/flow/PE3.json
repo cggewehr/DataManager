@@ -1,0 +1,11 @@
+{
+    "AppID": 0,
+    "AverageProcessingTimeInClockPulses": 1,
+    "CommStructure": "NOC",
+    "InBufferSize": 128,
+    "InjectorClockPeriod": null,
+    "InjectorType": "FXD",
+    "OutBufferSize": 128,
+    "PEPos": 3,
+    "ThreadID": 3
+}
