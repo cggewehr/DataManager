@@ -20,9 +20,13 @@ class Platform:
         self.Injectors = dict()
         self.WrapperAddresses = dict()  # Maps a PEPos value to its wrapper's address in base NoC
         self.AmountOfPEs = BaseNoCDimensions[0] * BaseNoCDimensions[1]
+        self.AmountOfWrappers = 0
+        self.AmountOfBuses = 0
+        self.Buses = []
+        self.AmountOfCrossbars = 0
+        self.Crossbars = []
         self.NUMBER_PROCESSORS_X = self.BaseNoCDimensions[0]
         self.NUMBER_PROCESSORS_Y = self.BaseNoCDimensions[1]
-        self.AmountOfWrappers = 0
         self.ReferenceClock = ReferenceClock  # In MHz
 
         # Generate initial PE objects at every NoC address (to be replaced by a wrapper when a structure is added)
@@ -38,7 +42,7 @@ class Platform:
 
 
     # Adds structure (Bus or Crossbar) to base NoC
-    def addStructure(self, NewStructure, WrapperLocationInBaseNoc: tuple):
+    def addStructure(self, NewStructure: Structure, WrapperLocationInBaseNoc: tuple):
 
         # Checks for a present wrapper at given location in base NoC
         if isinstance(self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]], Structure):
@@ -52,6 +56,17 @@ class Platform:
             # Inserts given structure into base NoC
             self.AmountOfPEs += len(NewStructure.PEs) - 1  # Adds PEs from new structure and remove a PE from base NoC to make room for a wrapper
             self.AmountOfWrappers += 1
+
+            if NewStructure.StructureType == "Bus":
+
+                self.AmountOfBuses += 1
+                self.Buses.append(NewStructure)
+
+            elif NewStructure.StructureType == "Crossbar":
+
+                self.AmountOfCrossbars += 1
+                self.Crossbars.append(NewStructure)
+
             self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]] = NewStructure
 
             NewStructure.AddressInBaseNoC = (WrapperLocationInBaseNoc[1] * self.BaseNoCDimensions[0]) + WrapperLocationInBaseNoc[0]
@@ -163,7 +178,7 @@ class Platform:
                 x_base += 1
 
 
-    # Find matching
+    # Find matching PE address (PEPos) for a given Thread object
     def getPEPos(self, Thread):
 
         for i in range(self.AmountOfPEs):
@@ -248,7 +263,7 @@ class Platform:
         pass
 
 
-#   Returns all serializable
+#   Returns dictionary of object with serializeable attributes (for JSON generation)
     def toDict(self):
 
         SerializableObject = copy.deepcopy(self)
@@ -258,6 +273,8 @@ class Platform:
         del SerializableObject.Injectors
         del SerializableObject.BaseNoC
         del SerializableObject.AllocationMap
+        del SerializableObject.Buses
+        del SerializableObject.Crossbars
 
         SerializableObject.WrapperAddresses = [self.WrapperAddresses[i] for i in range(len(self.WrapperAddresses))]
 
