@@ -22,8 +22,10 @@ class Platform:
         self.AmountOfPEs = BaseNoCDimensions[0] * BaseNoCDimensions[1]
         self.AmountOfWrappers = 0
         self.AmountOfBuses = 0
+        self.AmountOfPEsInBuses = []
         self.Buses = []
         self.AmountOfCrossbars = 0
+        self.AmountOfPEsInCrossbars = []
         self.Crossbars = []
         self.NUMBER_PROCESSORS_X = self.BaseNoCDimensions[0]
         self.NUMBER_PROCESSORS_Y = self.BaseNoCDimensions[1]
@@ -42,7 +44,7 @@ class Platform:
 
 
     # Adds structure (Bus or Crossbar) to base NoC
-    def addStructure(self, NewStructure: Structure, WrapperLocationInBaseNoc: tuple):
+    def addStructure(self, NewStructure, WrapperLocationInBaseNoc: tuple):
 
         # Checks for a present wrapper at given location in base NoC
         if isinstance(self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]], Structure):
@@ -60,11 +62,14 @@ class Platform:
             if NewStructure.StructureType == "Bus":
 
                 self.AmountOfBuses += 1
+                self.AmountOfPEsInBuses.append(len(NewStructure.PEs))
                 self.Buses.append(NewStructure)
+
 
             elif NewStructure.StructureType == "Crossbar":
 
                 self.AmountOfCrossbars += 1
+                self.AmountOfPEsInCrossbars.append(len(NewStructure.PEs))
                 self.Crossbars.append(NewStructure)
 
             self.BaseNoC[WrapperLocationInBaseNoc[0]][WrapperLocationInBaseNoc[1]] = NewStructure

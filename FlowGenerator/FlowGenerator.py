@@ -2,7 +2,7 @@
 import sys
 from os import getcwd
 import statistics
-from sklearn import preprocessing
+#from sklearn import preprocessing
 
 # Expects arguments:
 SetupScript = str(sys.argv[1])      # $1 = Name of setup script, located in Setups folder
@@ -43,64 +43,64 @@ Setup.mapToPlatform()
 
 # Generate project JSON config files
 Setup.generateJSON("Flows/" + SetupScript + " " + AppScript + "/flow/")
-print("JSON files created at " + getcwd() + "\\Flows\\" + SetupScript + " " + AppScript + "\\flow\\")
+print("JSON files created at " + getcwd() + "/Flows/" + SetupScript + " " + AppScript + "/flow/")
 
 # Generate log containing project information
 ProjectInfo = open("Flows/" + SetupScript + " " + AppScript + "/" + SetupScript + " " + AppScript + "Info.txt", 'w')
-ProjectInfo.write("Setup: " + SetupScript)
-ProjectInfo.write("\tAmount of PEs: " + Setup.AmountOfPEs)
-ProjectInfo.write("\tAmount of PEs in base NoC: " + str((Setup.BaseNoCDimensions[0]*Setup.BaseNoCDimensions[1]) - Setup.AmountOfWrappers))
-ProjectInfo.write("\tAmount of Wrappers: " + Setup.AmountOfWrappers)
+ProjectInfo.write("Setup: " + SetupScript + "\n")
+ProjectInfo.write("\tAmount of PEs: " + str(Setup.AmountOfPEs) + "\n")
+ProjectInfo.write("\tAmount of PEs in base NoC: " + str((Setup.BaseNoCDimensions[0]*Setup.BaseNoCDimensions[1]) - Setup.AmountOfWrappers) + "\n")
+ProjectInfo.write("\tAmount of Wrappers: " + str(Setup.AmountOfWrappers) + "\n")
 
-ProjectInfo.write("\tAmount of Buses: " + Setup.AmountOfBuses)
+ProjectInfo.write("\tAmount of Buses: " + str(Setup.AmountOfBuses) + "\n")
 AmountOfPEsInBuses = 0
-for i in Setup.Buses:
-    AmountOfPEsInBuses += len(Setup.Buses[i].PEs)
-ProjectInfo.write("\tAmount of PEs in each Bus: " + str(Setup.AmountOfPEsInBuses))
+for Bus in Setup.Buses:
+    AmountOfPEsInBuses += len(Bus.PEs)
+ProjectInfo.write("\tAmount of PEs in each Bus: " + str(Setup.AmountOfPEsInBuses) + "\n")
 
-ProjectInfo.write("\tAmount of Crossbars: " + Setup.AmountOfCrossbars)
+ProjectInfo.write("\tAmount of Crossbars: " + str(Setup.AmountOfCrossbars) + "\n")
 AmountOfPEsInCrossbars = 0
-for i in Setup.Crossbars:
-    AmountOfPEsInCrossbars += len(Setup.Crossbars[i].PEs)
-ProjectInfo.write("\tAmount of PEs in each Crossbar: " + str(Setup.Crossbars))
+for Crossbar in Setup.Crossbars:
+    AmountOfPEsInCrossbars += len(Crossbar.PEs)
+ProjectInfo.write("\tAmount of PEs in each Crossbar: " + str(Setup.AmountOfPEsInCrossbars) + "\n")
 
-ProjectInfo.write("Application: ")
-ProjectInfo.write("\tNumber of Applications: " + str(len(Applications)))
+ProjectInfo.write("Application: " + "\n")
+ProjectInfo.write("\tNumber of Applications: " + str(len(Applications)) + "\n")
 
 Threads = []
-for i in Applications:
-    for j in Applications[i].Threads:
-        Threads.append(Applications[i].Threads[j])
-ProjectInfo.write("\tNumber of Threads: " + str(len(Threads)))
+for App in Applications:
+    for Thread in App.Threads:
+        Threads.append(Thread)
+ProjectInfo.write("\tNumber of Threads: " + str(len(Threads)) + "\n")
 
 Targets = []
-for i in Threads:
-    for j in Threads[i].Targets:
-        Targets.append(Threads[i].Targets[j])
-ProjectInfo.write("\tAmount of Targets" + str(len(Targets)))
+for Thread in Threads:
+    for Target in Thread.Targets:
+        Targets.append(Target)
+ProjectInfo.write("\tAmount of Targets: " + str(len(Targets)) + "\n")
 
 Bandwidth = []
-for i in Threads:
-    Bandwidth.append(Threads[i].TotalBandwidth)
-ProjectInfo.write("\tTotal required bandwidth: " + str(sum(Bandwidth)))
+for Thread in Threads:
+    Bandwidth.append(Thread.TotalBandwidth)
+ProjectInfo.write("\tTotal required bandwidth: " + str(sum(Bandwidth)) + "\n")
 
-ProjectInfo.write("\tAverage required bandwidth (per thread): " + str(statistics.mean(Bandwidth)))
-ProjectInfo.write("\tStd deviation of required bandwidth (per thread): " + str(statistics.pstdev(Bandwidth)))
+ProjectInfo.write("\tAverage required bandwidth (per thread): " + str(statistics.mean(Bandwidth)) + "\n")
+ProjectInfo.write("\tStd deviation of required bandwidth (per thread): " + str(statistics.pstdev(Bandwidth)) + "\n")
 
 # TODO: Classify application as concentrated or distributed (function of std dev) and high demand or low demand
 
 # Classify application as concentrated or distributed
-BandwidthNormalized = preprocessing.normalize([Bandwidth])
-if statistics.pstdev(BandwidthNormalized) > 0.35:
-    ProjectInfo.write("\n\tApplication is concentrated")
-else:
-    ProjectInfo.write("\n\tApplication is distributed")
-
-# Classify as high demand or low demand
-if statistics.mean(Bandwidth) > 100:  # Bandwidth is expressed in Mbps
-    ProjectInfo.write("\tApplication is high demand")
-else:
-    ProjectInfo.write("\tApplication is low demand")
+# BandwidthNormalized = preprocessing.normalize([Bandwidth])
+# if statistics.pstdev(BandwidthNormalized) > 0.35:
+#     ProjectInfo.write("\n\tApplication is concentrated")
+# else:
+#     ProjectInfo.write("\n\tApplication is distributed")
+#
+# # Classify as high demand or low demand
+# if statistics.mean(Bandwidth) > 100:  # Bandwidth is expressed in Mbps
+#     ProjectInfo.write("\tApplication is high demand")
+# else:
+#     ProjectInfo.write("\tApplication is low demand")
 
 # Close info file and exit successfully
 ProjectInfo.close()

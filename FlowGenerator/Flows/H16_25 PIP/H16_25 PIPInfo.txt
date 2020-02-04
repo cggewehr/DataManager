@@ -1,0 +1,15 @@
+Setup: H16_25
+	Amount of PEs: 25
+	Amount of PEs in base NoC: 6
+	Amount of Wrappers: 3
+	Amount of Buses: 2
+	Amount of PEs in each Bus: [6, 6]
+	Amount of Crossbars: 1
+	Amount of PEs in each Crossbar: [7]
+Application: 
+	Number of Applications: 1
+	Number of Threads: 8
+	Amount of Targets8
+	Total required bandwidth: 576
+	Average required bandwidth (per thread): 72
+	Std deviation of required bandwidth (per thread): 49.95998398718719

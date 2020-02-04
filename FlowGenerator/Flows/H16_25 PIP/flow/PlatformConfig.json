@@ -1,5 +1,14 @@
 {
+    "AmountOfBuses": 2,
+    "AmountOfCrossbars": 1,
     "AmountOfPEs": 25,
+    "AmountOfPEsInBuses": [
+        6,
+        6
+    ],
+    "AmountOfPEsInCrossbars": [
+        7
+    ],
     "AmountOfWrappers": 3,
     "BaseNoCDimensions": [
         3,
