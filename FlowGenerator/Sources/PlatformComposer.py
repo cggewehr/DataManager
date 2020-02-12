@@ -415,11 +415,11 @@ class Injector:
         self.RNGSeed2 = random.randint(0, 2147483646)  # Random Value
 
         self.Headers = dict()
-        self.Payload = dict()
+        self.Payloads = dict()
 
         for i in range(len(self.TargetPEs)):
 
-            payload_aux = [  # Default
+            payloads_aux = [  # Default
                 "PEPOS",
                 "TMSTP",
                 "RANDO",
@@ -429,10 +429,10 @@ class Injector:
             ]
 
             for j in range(int(self.TargetPayloadSize[i]) - 6):
-                payload_aux.append("RANDO")  # Preenche com RANDO #Default
+                payloads_aux.append("RANDO")  # Preenche com RANDO #Default
 
             self.Headers["Header" + str(self.TargetPEs[i])] = ["ADDR", "SIZE"]  # Default
-            self.Payload["Payload" + str(self.TargetPEs[i])] = payload_aux
+            self.Payloads["Payload" + str(self.TargetPEs[i])] = payloads_aux
 
 
     def toJSON(self):
