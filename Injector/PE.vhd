@@ -34,7 +34,6 @@ entity PE is
     );
 
     port(
-
         -- Basic
 	    Clock               : in  std_logic;
         Reset               : in  std_logic;
@@ -67,28 +66,30 @@ architecture Injector of PE is
 
     -- INPUT BUFFER (DATA FROM STRUCTURE)
     constant InBufferSize: integer := jsonGetInteger(PEJSONConfig, "InBufferSize");
+    signal InClockIn: std_logic;
     signal InDataIn: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal InDataInAV: std_logic;
-    signal InWriteRequest: std_logic;
     signal InWriteACK: std_logic;
+    signal InClockOut: std_logic;
     signal InDataOut: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal InDataOutAV: std_logic;
-    signal InReadRequest: std_logic;
+    signal InReadReq: std_logic;
     signal InBufferEmptyFlag: std_logic;
     signal InBufferFullFlag: std_logic;
+    signal InBufferReadyFlag: std_logic;
     signal InBufferAvailableFlag: std_logic;
 
     -- OUTPUT BUFFER (DATA TO STRUCTURE)
     constant OutBufferSize: integer := jsonGetInteger(PEJSONConfig, "OutBufferSize");
     signal OutDataIn: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal OutDataInAV: std_logic;
-    signal OutWriteRequest: std_logic;
     signal OutWriteACK: std_logic;
     signal OutDataOut: DataWidth_t; -- Type defined in PE_PKG.vhd
     signal OutDataOutAV: std_logic;
-    signal OutReadRequest: std_logic;
+    signal OutReadReq: std_logic;
     signal OutBufferEmptyFlag: std_logic;
     signal OutBufferFullFlag: std_logic;
+    signal OutBufferReadyFlag: std_logic;
     signal OutBufferAvailableFlag: std_logic;
 
 begin 
@@ -101,53 +102,53 @@ begin
         port map (
 
             -- Basic
-            clock => Clock_rx, -- Clock_rx is defined by interfacing entity
-            reset => reset,
+            Reset => Reset,
 
             -- Input Interface
-            dataIn => InDataIn,
-            dataInAV => InDataInAV,
-            writeRequest => InWriteRequest,
-            writeACK => InWriteACK,
+            ClockIn => InClockIn,
+            DataIn => InDataIn,
+            DataInAV => InDataInAV,
+            WriteACK => InWriteACK,
 
             -- Output Interface
-            dataOut => InDataOut,
-            dataOutAV => InDataOutAV,
-            readRequest => InReadRequest,
+            ClockOut => InjectorClock,
+            DataOut => InDataOut,
+            DataOutAV => InDataOutAV,
+            ReadReq => InReadReq,
 
             -- Flags
-            bufferEmptyFlag => InBufferEmptyFlag,
-            bufferFullFlag => InBufferFullFlag,
-            bufferAvailableFlag => InBufferAvailableFlag
+            BufferEmptyFlag => InBufferEmptyFlag,
+            BufferFullFlag => InBufferFullFlag,
+            BufferAvailableFlag => InBufferAvailableFlag
             
         );
 
     OutBuffer: entity work.CircularBuffer
         generic map(
-            bufferSize => OutBufferSize,
-            dataWidth  => DataWidth -- Constant defined in PE_PKG.vhd
+            BufferSize => OutBufferSize,
+            DataWidth  => DataWidth -- Constant defined in PE_PKG.vhd
         )
         port map (
 
             -- Basic
-            clock => InjectorClock,
-            reset => reset,
+            Reset => reset,
 
             -- Input Interface
-            dataIn => OutDataIn,
-            dataInAV => OutDataInAV,
-            writeRequest => OutWriteRequest,
-            writeACK => OutWriteACK,
+            ClockIn => InjectorClock,
+            DataIn => OutDataIn,
+            DataInAV => OutDataInAV,
+            WriteACK => OutWriteACK,
 
             -- Output Interface
-            dataOut => OutDataOut,
-            dataOutAV => OutDataOutAV,
-            readRequest => OutReadRequest,
+            ClockOut => Clock,
+            DataOut => OutDataOut,
+            DataOutAV => OutDataOutAV,
+            ReadReq => OutReadReq,
 
             -- Flags
-            bufferEmptyFlag => OutBufferEmptyFlag,
-            bufferFullFlag => OutBufferFullFlag,
-            bufferAvailableFlag => OutBufferAvailableFlag
+            BufferEmptyFlag => OutBufferEmptyFlag,
+            BufferFullFlag => OutBufferFullFlag,
+            BufferAvailableFlag => OutBufferAvailableFlag
             
         );
 
@@ -155,15 +156,14 @@ begin
     BufferNOCInterface: if (CommStructure = "NOC") generate
 
         -- NoC Interface
-        clock_tx <= InjectorClock; -- injectorClock = Output buffer clock
+        clock_tx <= Clock;
         data_out <= OutDataOut;
-        OutReadRequest <= credit_i;
+        OutReadReq <= credit_i;
         tx <= OutDataOutAV;
 
         InDataInAV <= rx;
-        InWriteRequest <= rx;
         InDataIn <= data_in;
-        credit_o <= InBufferAvailableFlag;             
+        credit_o <= InBufferReadyFlag;             
 
     end generate BufferNOCInterface;
 
@@ -209,12 +209,12 @@ begin
             -- Input Interface
             DataIn => InDataOut,
             DataInAV => InDataOutAV,
-            InputBufferReadRequest => InReadRequest,
+            InputBufferReadRequest => InReadReq,
 
             -- Output Interface
             DataOut => OutDataIn,
             DataOutAV => OutDataInAV,
-            OutputBufferWriteRequest => OutWriteRequest,
+            OutputBufferWriteRequest => open,
             OutputBufferWriteACK => OutWriteACK,
             OutputBufferSlotAvailable => OutBufferAvailableFlag
 

@@ -28,6 +28,7 @@
 library ieee;
     use ieee.std_logic_1164.all;
     use ieee.std_logic_unsigned.all;
+    use ieee.numeric_std.all;
     
 library work;
     use work.PE_PKG.all;
@@ -44,7 +45,7 @@ architecture testbench OF PE_TB is
     --Inputs
     signal Clock : std_logic := '0';
     signal Reset : std_logic := '0';
-    signal Credit_i  : std_logic := '0';
+    signal Credit_i : std_logic := '0';
     signal Clock_rx : std_logic := '0';
     signal Rx : std_logic := '0';
     signal Data_in : std_logic_vector(31 downto 0) := (others => '0');
@@ -56,7 +57,7 @@ architecture testbench OF PE_TB is
     signal Credit_o : std_logic;
 
     -- Clock period definitions
-    constant clock_period : time := 10 ns;
+    constant clock_period : time := 50 ns;
  
 begin
  
@@ -101,13 +102,46 @@ begin
     stimProcess: process
     begin		
 
-        -- hold reset state for 100 ns.
+        -- Hold reset state for 100 ns.
         Reset <= '1';
         wait for 100 ns;	
         Reset <= '0';
-      
-        -- insert stimulus here 
         Credit_i <= '1';
+        
+        -- Produces dummy messages
+        for messages in 0 to 127 loop
+        
+            -- Produces dummy flits
+            for flit in 0 to 127 loop
+            
+                wait until rising_edge(Clock);
+                
+                -- ADDR flit, Data_in <= PEPos (as defined in sample JSON config)
+                if flit = 0 then
+                
+                    Data_in <= std_logic_vector(to_unsigned(5, 32));
+                        
+                -- SIZE flit, fixed as 128
+                elsif flit = 1 then
+                
+                    Data_in <= std_logic_vector(to_unsigned(128, 32));
+                    
+                -- Payload flits, Data_in <= current payload flit # (0 to 126)
+                else
+                
+                    Data_in <= std_logic_vector(to_unsigned(flit - 2, 32));
+                    
+                end if;
+                
+                rx <= '1';
+                
+            end loop;
+            
+            -- Wait for 1 us, then send another message
+            rx <= '0';
+            wait for 1 us;
+            
+        end loop;
 
         wait;
     end process;
