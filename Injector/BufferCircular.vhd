@@ -37,77 +37,115 @@ end entity CircularBuffer;
 
 architecture RTL of CircularBuffer is
 
+    -- The buffer itself, where data is stored to and read from
 	type bufferArray_t is array (natural range <>) of std_logic_vector(DataWidth - 1 downto 0);
 	signal bufferArray : bufferArray_t(BufferSize - 1 downto 0);
 
+    -- Pointers signaling what buffer slot is data to be read from/written to
 	signal readPointer : integer range 0 to BufferSize - 1;
 	signal writePointer : integer range 0 to BufferSize - 1;
+
+    -- Counter for how many buffer slots have been filled 
+    --(Status flags are based on this value) 
 	signal dataCount : integer range 0 to BufferSize;
 
+    signal initialized: std_logic;
+
 	-- Simple increment and wrap around
-	function incr(value : integer ; maxValue : in integer ; minValue : in integer) return integer is
+    --   (Used for resetting Read and Write pointers back to 0 (first buffer slot)
+    -- once they've reached the end of the buffer)
+	function incr(Value : integer ; MaxValue : in integer ; MinValue : in integer) return integer is
 
 	begin
 
-		if value = maxValue then
-			return minValue;
+		if Value = MaxValue then
+			return MinValue;
 		else
-			return value + 1;
+			return Value + 1;
 		end if;
 
 	end function incr;
 
 begin
 
-    -- Update flags asynchrounously
+
+    -- Update flags asynchrounously, based on dataCount value
 	BufferEmptyFlag <= '1' when dataCount = 0 else '0';
 	BufferFullFlag <= '1' when dataCount = BufferSize else '0';
 	BufferReadyFlag <= '1' when dataCount < BufferSize else '0';
 	BufferAvailableFlag <= '1' when dataCount > 0 else '0';
 
 
-	-- Updates Data Count whenever a write or read occurs (Asynchrounous)
-	UpdateFlags : process(DataInAV, ReadReq, Reset) 
+    -- Update Data Count based on writePointer and readPointer values
+    UpdateDataCount : process(Reset, writePointer, readPointer) 
+        
+        variable lastEventWasWrite : std_logic;
+        variable dataCountTemp : integer range 0 to BufferSize;
 
-		variable dataCountTemp: integer range 0 to BufferSize;
+    begin
 
-	begin
+        -- Determines if last event was a either a Read or a Write
+        --   (Necessary for when both pointer are equal, when so, amount of data
+        -- on buffer can be determined by what event was the latest: if it was a
+        -- write, it means that writePointer catched up to readPointer, implying
+        -- that the next write on the buffer would overwrite the oldest buffer 
+        -- slot, so, in conclusion, the buffer is full. Otherwise, if readPointer
+        -- catched up to writePointer, all the available data on the buffer has 
+        -- already been consumed)
+        if Reset = '1' then
 
-		-- Update Data Count from readPointer and writePointer values
-		if Reset = '1' then
-			dataCountTemp := 0;
-		else
-			if writePointer > readPointer then
-				dataCountTemp := writePointer - readPointer;
-			else
-				dataCountTemp := (writePointer + BufferSize) - readPointer;
-			end if;
-		end if;
+            dataCount <= 0;
+            
+        elsif writePointer'event then
 
-		dataCount <= dataCountTemp;
+            lastEventWasWrite := '1';
 
-	end process UpdateFlags;
+        elsif readPointer'event then
+
+            lastEventWasWrite := '0';
+
+        end if;
+
+        -- Update dataCount value
+        if writePointer > readPointer then
+            dataCount <= writePointer - readPointer;
+        elsif writePointer < readPointer then
+            dataCount <= (writePointer + BufferSize) - readPointer;
+        elsif writePointer = readPointer and lastEventWasWrite = '1' and initialized = '1' then
+            dataCount <= BufferSize;
+        elsif writePointer = readPointer and lastEventWasWrite = '0' and initialized = '1' then
+            dataCount <= 0;
+        else -- writePointer = readPointer and initialized = '0'
+            dataCount <= 0;
+        end if;
+
+    end process UpdateDataCount;
 
 
-	-- Handles write requests
+	--   Handles write requests (Used protocol is ready-then-valid, meaning the
+    -- producer entity must handle flow control through the available status flags
+    -- and the WriteACK signal)
 	WriteProcess : process(ClockIn, Reset) begin
 
 		if Reset = '1' then
 
 			writePointer <= 0;
 			WriteACK <= '0';
+            initialized <= '0';
 
 		elsif rising_edge(ClockIn) then
 
 			-- WriteACK is defaulted to '0'
 			WriteACK <= '0';
 
-			-- Checks for a write request. If there is valid data available and free space on the buffer, write it and send ACK signal to producer entity
+			--   Checks for a write request. If there is valid data available and 
+            -- free space on the buffer, write it and send ACK signal to producer entity
 			if DataInAV = '1' and dataCount < bufferSize then
 
 				bufferArray(writePointer) <= dataIn;
 				writeACK <= '1';
 				writePointer <= incr(writePointer, bufferSize - 1, 0);
+                initialized <= '1';
 
 			end if;
 
@@ -123,11 +161,12 @@ begin
 
 			readPointer <= 0;
 			DataOutAV <= '0';
-			DataOut <= (others => '0');
+			DataOut <= (others=>'0');
 
 		elsif rising_edge(ClockOut) then
 
-			-- DataAV is defaulted to '0'
+			-- DataAV is defaulted to '0' 
+            -- (Remains that way until a valid read request is received)
 			DataOutAV <= '0'; 
 
 			-- Checks for a read request. If there is data on the buffer, pass in on to consumer entity
