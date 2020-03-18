@@ -10,7 +10,7 @@
 --------------------------------------------------------------------------------
 -- Changelog   : v0.01 - Initial implementation
 --------------------------------------------------------------------------------
--- TODO        : 
+-- TODO        : Make 
 --------------------------------------------------------------------------------
 
 
@@ -35,51 +35,81 @@ architecture RTL of HyHeMPS_TB is
     constant PlatformJSONConfig: T_JSON := jsonLoad(PlatformConfigFile);
 
     constant AmountOfPEs: integer := jsonGetInteger(PlatformJSONConfig, "AmountOfPEs");
+    constant NoCXSize: integer := jsonGetInteger(PlatformJSONConfig, "BaseNoCDimensions/0");
+    constant NoCYSize: integer := jsonGetInteger(PlatformJSONConfig, "BaseNoCDimensions/1");
+    constant AmountOfNoCNodes: integer := NoCXSize * NoCYSize;
 
     signal PEInterfaces: PEInterface_vector(0 to AmountOfPEs - 1);
 
+    signal Reset: std_logic := '1';
+    signal Clocks: std_logic_vector(0 to AmountOfNoCNodes - 1);
+
+    procedure GenerateClock(ClockPeriod: in time ; Clock: out std_logic) is begin
+
+        while loop
+
+            Clock <= '0';
+            wait for ClockPeriod/2;
+            Clock <= '1';
+            wait for ClockPeriod/2;
+            
+        end loop;
+        
+    end procedure GenerateClock;
+
 begin
+
+    -- Holds reset for 100 ns
+    Reset <= '1', '0' after 100 ns;
+
+
+    -- Generates clocks for every router/wrapper
+    ClockGen: for i in 0 to AmountOfNoCNodes - 1 generate
+
+        Clocks(i) <= GenerateClock(Clocks(i), jsonGetReal(PlatformJSONConfig, "RouterClockPeriods/" + integer'image(i)) / 1 ns);
+
+    end generate ClockGen;
 
 
     -- Instantiates HyHeMPS
-    HyHeMPSGEN: entity work.HyHeMPS
+    HyHeMPSGen: entity work.HyHeMPS
 
         generic map(
-            PlatformConfigFile => PlatformConfigFile
+            PlatformConfigFile => PlatformConfigFile,
+            AmountOfPEs => AmountOfPEs
         )
 
         port map (
-            Clock => Clock,
+            Clocks => Clocks,
             Reset => Reset,
             PEInterfaces => PEInterfaces
         );
 
 
     -- Instantiates PEs (which then instantiate Injectors) to provide stimulus
-    PEsGEN: for i in 0 to AmountOfPEs - 1 generate
+    PEsGen: for i in 0 to AmountOfPEs - 1 generate
 
         PE: entity work.PE
 
             generic map(
-                PEConfigFile => "flow/PE" + integer'image(i) + ".json",
-                InjectorConfigFile => "flow/INJ" + integer'image(i) + ".json",
-                PlatformConfigFile => PlatformConfigFile,
-                InboundLogFilename => "log/InLog" + integer'image + ".txt",
-                OutboundLogFilename => "log/OutLog" + integer'image + ".txt",
+                PlatformConfigFile  => PlatformConfigFile,
+                PEConfigFile        => "flow/PE" + integer'image(i) + ".json",
+                InjectorConfigFile  => "flow/INJ" + integer'image(i) + ".json",
+                InboundLogFilename  => "log/InLog" + integer'image + ".txt",
+                OutboundLogFilename => "log/OutLog" + integer'image + ".txt"
             )
 
             port map (
-                Clock => Clock,
-                Reset => Reset,
-                
+                Reset    => Reset,
                 Clock_tx => PEInterfaces(i).Clock_tx,
-                Tx => PEInterfaces(i).Tx,
+                Tx       => PEInterfaces(i).Tx,
                 Data_out => PEInterfaces(i).Data_out,
                 Credit_i => PEInterfaces(i).Credit_i,
                 Clock_rx => PEInterfaces(i).Clock_rx,
-                Rx => PEInterfaces(i).Rx,
-                Data_In => PEInterfaces(i).Data_In,
-                Credit_o => PEInterfaces(i).Credit_o
+                Rx       => PEInterfaces(i).Rx,
+                Data_In  => PEInterfaces(i).Data_In,
+                Credit_o => PEInterfaces(i).Credit_o,
+                -- TODO: Add arbiter/bridge signals to PE interface
             );
 
     end generate PEsGEN;
