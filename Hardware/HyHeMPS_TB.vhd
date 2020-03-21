@@ -44,9 +44,9 @@ architecture RTL of HyHeMPS_TB is
     signal Reset: std_logic := '1';
     signal Clocks: std_logic_vector(0 to AmountOfNoCNodes - 1);
 
-    procedure GenerateClock(ClockPeriod: in time ; Clock: out std_logic) is begin
+    procedure GenerateClock(constant ClockPeriod: in time ; signal Clock: out std_logic) is begin
 
-        while loop
+        ClockLoop: loop
 
             Clock <= '0';
             wait for ClockPeriod/2;
