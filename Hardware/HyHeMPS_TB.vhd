@@ -10,7 +10,7 @@
 --------------------------------------------------------------------------------
 -- Changelog   : v0.01 - Initial implementation
 --------------------------------------------------------------------------------
--- TODO        : Make 
+-- TODO        : 
 --------------------------------------------------------------------------------
 
 
@@ -19,9 +19,9 @@ library ieee;
     use ieee.numeric_std.all;
 
 library work;
-    use work.PE_PKG.all;
+    use work.HyHeMPS_PKG.all;
     use work.JSON.all;
-    use work.HeMPS_defaults.all;
+    --use work.HeMPS_defaults.all;
 
 
 entity HyHeMPS_TB is
@@ -53,7 +53,7 @@ architecture RTL of HyHeMPS_TB is
             Clock <= '1';
             wait for ClockPeriod/2;
             
-        end loop;
+        end loop ClockLoop;
         
     end procedure GenerateClock;
 
@@ -65,8 +65,10 @@ begin
 
     -- Generates clocks for every router/wrapper
     ClockGen: for i in 0 to AmountOfNoCNodes - 1 generate
-
-        Clocks(i) <= GenerateClock(Clocks(i), jsonGetReal(PlatformJSONConfig, "RouterClockPeriods/" + integer'image(i)) / 1 ns);
+        signal ClockPeriods: real_vector;
+    begin
+        ClockPeriods(i) <= jsonGetReal(PlatformJSONConfig, "RouterClockPeriods/" & integer'image(i));
+        GenerateClock(ClockPeriods(i) * 1 ns, Clocks(i));
 
     end generate ClockGen;
 
@@ -76,9 +78,9 @@ begin
 
         generic map(
             PlatformConfigFile => PlatformConfigFile,
-            AmountOfPEs => AmountOfPEs
+            AmountOfPEs => AmountOfPEs,
+            AmountOfNoCNodes => AmountOfNoCNodes
         )
-
         port map (
             Clocks => Clocks,
             Reset => Reset,
@@ -93,26 +95,24 @@ begin
 
             generic map(
                 PlatformConfigFile  => PlatformConfigFile,
-                PEConfigFile        => "flow/PE" + integer'image(i) + ".json",
-                InjectorConfigFile  => "flow/INJ" + integer'image(i) + ".json",
-                InboundLogFilename  => "log/InLog" + integer'image + ".txt",
-                OutboundLogFilename => "log/OutLog" + integer'image + ".txt"
+                PEConfigFile        => "flow/PE" & integer'image(i) & ".json",
+                InjectorConfigFile  => "flow/INJ" & integer'image(i) & ".json",
+                InboundLogFilename  => "log/InLog" & integer'image(i) & ".txt",
+                OutboundLogFilename => "log/OutLog" & integer'image(i) & ".txt"
             )
-
             port map (
-                Reset    => Reset,
-                Clock_tx => PEInterfaces(i).Clock_tx,
-                Tx       => PEInterfaces(i).Tx,
-                Data_out => PEInterfaces(i).Data_out,
-                Credit_i => PEInterfaces(i).Credit_i,
-                Clock_rx => PEInterfaces(i).Clock_rx,
-                Rx       => PEInterfaces(i).Rx,
-                Data_In  => PEInterfaces(i).Data_In,
-                Credit_o => PEInterfaces(i).Credit_o,
-                -- TODO: Add arbiter/bridge signals to PE interface
+                Reset   => Reset,
+                ClockTx => PEInterfaces(i).ClockTx,
+                Tx      => PEInterfaces(i).Tx,
+                DataOut => PEInterfaces(i).DataOut,
+                CreditI => PEInterfaces(i).CreditI,
+                ClockRx => PEInterfaces(i).ClockRx,
+                Rx      => PEInterfaces(i).Rx,
+                DataIn  => PEInterfaces(i).DataIn,
+                CreditO => PEInterfaces(i).CreditO
             );
 
     end generate PEsGEN;
 
-    
+
 end architecture RTL;

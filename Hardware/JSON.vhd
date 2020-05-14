@@ -49,9 +49,9 @@ package JSON is
 	subtype T_UINT16 is NATURAL range 0 to 2**16-1;
 	type T_NATVEC is array(NATURAL range <>) of NATURAL;
 
-	-- integer_vector as  standard types are available only in VHDL-2008
+	-- integer_vector and real_vector as standard types are available only in VHDL-2008
     type integer_vector is array(natural range <>) of integer;
-    type real_vector is array(natural range <>) of integer;
+    type real_vector is array(natural range <>) of real;
 
 	type T_ELEMENT_TYPE is (ELEM_KEY, ELEM_OBJECT, ELEM_LIST, ELEM_STRING, ELEM_LINK, ELEM_NUMBER, ELEM_NULL, ELEM_TRUE, ELEM_FALSE);
 
@@ -68,7 +68,8 @@ package JSON is
 
 	constant C_JSON_ERROR_MESSAGE_LENGTH	: NATURAL		:= 64;
 	constant C_JSON_INDEX_MAX     : T_UINT16 := 1023;
-	constant C_JSONFILE_INDEX_MAX : T_UINT16 := 4*C_JSON_INDEX_MAX;
+	--constant C_JSONFILE_INDEX_MAX : T_UINT16 := 4*C_JSON_INDEX_MAX; Not Enough
+	constant C_JSONFILE_INDEX_MAX : T_UINT16 := 16*C_JSON_INDEX_MAX;
 
 	type T_JSON is record
 		Content				: STRING(1 to T_UINT16'high);
@@ -106,13 +107,14 @@ package JSON is
 	procedure jsonReportIndex(Index : T_JSON_INDEX; Content : STRING; StringBuffer : inout STRING; StringWriter : inout NATURAL);
 
 	function jsonGetBoolean(JSONContext : T_JSON; Path : STRING) return BOOLEAN;
+  function jsonGetReal(JSONContext : T_JSON; Path : STRING) return real;
 	function jsonGetInteger(JSONContext : T_JSON; Path : STRING) return integer;
 	function jsonGetString(JSONContext : T_JSON; Path : STRING) return STRING;
 	function jsonGetIntegerArray(JSONContext : T_JSON; Path : string) return integer_vector;
 	--function jsonGetIntegerArray(JSONContext : T_JSON; Path : string) return integerArray;
 	function jsonGetIntegerArray(JSONContext : T_JSON; Path : string; Len : positive) return integer_vector;
 	--function jsonGetIntegerArray(JSONContext : T_JSON; Path : string; Len : positive) return integerArray;
-	--function jsonGetRealArray(JSONContext : T_JSON; Path : string) return real_vector;
+--	function jsonGetRealArray(JSONContext : T_JSON; Path : string) return real_vector;
 
 	function jsonIsBoolean(JSONContext : T_JSON; Path : STRING) return BOOLEAN;
 	function jsonIsNull(JSONContext : T_JSON; Path : STRING) return BOOLEAN;
@@ -1629,9 +1631,16 @@ package body JSON is
 		return (Element.ElementType = ELEM_TRUE);
 	end function;
 
+  -- NEW
 	function jsonGetInteger(JSONContext : T_JSON; Path : STRING) return integer is
 	begin
 		return integer'value(jsonGetString(JSONContext, Path));
+	end function;
+
+  -- NEW
+  function jsonGetReal(JSONContext : T_JSON; Path : STRING) return real is
+	begin
+		return real'value(jsonGetString(JSONContext, Path));
 	end function;
 
 	-- function to get a integer_vector from the compressed content extracted from a JSON input
@@ -1649,8 +1658,8 @@ package body JSON is
 	-- function to get a integer_vector of a fixed length from the compressed content extracted from a JSON input
 	function jsonGetIntegerArray(JSONContext : T_JSON; Path : string; Len : positive) return integer_vector is
 	--function jsonGetIntegerArray(JSONContext : T_JSON; Path : string; Len : positive) return integerArray is
-	  -- variable return_value : integer_vector(Len-1 downto 0);
-	  variable return_value : integerArray(Len-1 downto 0);
+	  variable return_value : integer_vector(Len-1 downto 0);
+	  --variable return_value : integerArray(Len-1 downto 0);
 	begin
 	  for i in 0 to Len-1 loop
 	    --return_value(i) := to_natural_dec(jsonGetString(JSONContext, Path & "/" & to_string(i)));
