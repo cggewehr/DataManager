@@ -71,7 +71,7 @@ architecture RTL of CrossbarControl is
 
 	-- Performs "or" operation between all elements of a given std_logic_vector
 	function OrReduce(inputArray: std_logic_vector) return std_logic is
-		variable orReduced: std_logic := 0;
+		variable orReduced: std_logic := '0';
 	begin
 
 		for i in inputArray'range loop 
@@ -92,7 +92,7 @@ architecture RTL of CrossbarControl is
 			if i = IndexToSkip then
 				next;
 
-			elsif Addresses(i) = Addresses then
+			elsif Addresses(i) = AddressOfInterest then
 				return i;
 
 			end if;
@@ -103,7 +103,7 @@ architecture RTL of CrossbarControl is
 		
 	end function GetIndexOfAddr;
 
-	constant selfIndex: integer := GetIndexOfAddr(Addresses, SelfAddress, 0);
+	constant selfIndex: integer := GetIndexOfAddr(PEAddresses, SelfAddress, 0);
 	signal sourceIndex: integer;
 
 begin
@@ -118,7 +118,8 @@ begin
 				sourceIndex <= 0;
 
 			else
-				sourceIndex <= GetIndexOfActiveTx(PERx);
+				--sourceIndex <= GetIndexOfActiveTx(PERx);
+				sourceIndex <= GetIndexOfActiveTx(RXMux);
 
 			end if;
 

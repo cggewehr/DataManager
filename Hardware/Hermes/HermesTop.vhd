@@ -91,7 +91,7 @@ begin
         -- Instantiates a wrapper
         WrapperInstance: if jsonGetBoolean(PlatCFG, "NoCPosIsWrapper/" & integer'image(i)) generate
 
-            report "Instantiated a wrapper at base NoC position " + integer'image(i) severity note;
+            report "Instantiated a wrapper at base NoC position " & integer'image(i) severity note;
 
             Wrapper: entity work.Wrapper
 

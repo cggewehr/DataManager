@@ -101,7 +101,7 @@ begin
 		PEInterfaces(i).ClockRx <= Clock;
 		PEInterfaces(i).DataIn <= BusData;
 		PEInterfaces(i).Rx <= controlRx(i);
-		busCredit <= PEInterfaces(i).controlCredit(i);
+		controlCredit(i) <= PEInterfaces(i).CreditO;
 
 		-- PE output interface
 		busData <= PEInterfaces(i).DataOut;

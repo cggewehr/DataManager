@@ -13,10 +13,12 @@
 ---------------------------------------------------------------------------------------
 
 library IEEE;
-use IEEE.STD_LOGIC_1164.all;
-use IEEE.STD_LOGIC_unsigned.all;
+        use IEEE.STD_LOGIC_1164.all;
+        use IEEE.STD_LOGIC_unsigned.all;
+
+library work;
 use work.HeMPS_defaults.all;
-use work.HemPS_PKG.all;
+--use work.HemPS_PKG.all;
 
 entity SwitchControl is
 port(

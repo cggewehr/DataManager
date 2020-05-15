@@ -28,7 +28,7 @@ library work;
 entity Crossbar is
 
 	generic(
-		Arbiter: string;
+		ArbiterType: string;
 		AmountOfPEs: integer;
 		PEAddresses: DataWidth_vector;  -- As XY coordinates
 		BridgeBufferSize: integer
@@ -36,7 +36,7 @@ entity Crossbar is
 	port(
 		Clock: in std_logic;
 		Reset: in std_logic;
-		PEInterfaces: inout PEInterfaces_vector
+		PEInterfaces: inout PEInterface_vector
 	);
 	
 end entity Crossbar;
@@ -99,22 +99,22 @@ begin
 				ClockTx => open,
 				Tx      => bridgeTx(i),
 				DataOut => bridgeDataOut(i),
-				CreditI => bridgeCredit(i),
+				CreditI => bridgeCredit,
 
 				-- Arbiter interface
-				Ack     => bridgeACK(i),
-				Request => bridgeRequest(i),
-				Grant   => bridgeGrant(i)
+				Ack     => bridgeACK,
+				Request => bridgeRequest,
+				Grant   => bridgeGrant
 
 			);
 
-	end generate BusBridgeGen;
+	end generate CrossbarBridgeGen;
 
 
 	-- Instantiates input controllers
 	CrossbarControlGen: for i in 0 to AmountOfPEs - 1 generate
 
-		CrossbarControl: entity CrossbarControl
+		CrossbarControl: entity work.CrossbarControl
 
 			generic map(
 				PEAddresses => PEAddresses,
@@ -144,15 +144,15 @@ begin
 
 					controlDataIn(i)(j) <= bridgeDataOut(j);
 					controlRx(i)(j) <= bridgeTx(j);
-					bridgeCredit(i)(j) <= controlCreditO(j);
+					bridgeCredit(i) <= controlCreditO(i)(j);
 
 				end generate ControlMap;
 
 				ControlGround: if i = j generate
 
-					controlDataIn(i) <= (others => '0');
+					controlDataIn(i)(j) <= (others => '0');
 					controlRx(i)(j) <= '0';
-					bridgeCredit(i)(j) <= '0';
+					bridgeCredit(i) <= '0';
 
 				end generate ControlGround;
 
@@ -164,38 +164,55 @@ begin
 	-- Instantiates arbiters as given by "Arbiter" generic
 	ArbiterGen: for Arbiter in 0 to AmountOfPEs - 1 generate
 
-		RoundRobinArbiterGen: if Arbiter = "RR" generate
+		RoundRobinArbiterGen: if ArbiterType = "RR" generate
 
-			RoundRobinArbiter: entity work.RoundRobinArbiter
+			RoundRobinArbiter: entity work.CrossbarRRArbiter
 
 				generic map(
 					AmountOfPEs => AmountOfPEs
 				)
 				port map(
-					Clock   => Clock,
-					Reset   => Reset,
-					Ack     => arbiterACK(Arbiter),
-					Grant   => arbiterGrant(Arbiter),
-					Request => arbiterRequest(Arbiter)
+					Clock => Clock,
+					Reset => Reset,
+					Ack   => arbiterACK(Arbiter),
+					Grant => arbiterGrant(Arbiter),
+					Req   => arbiterRequest(Arbiter)
 				);
 
 		end generate RoundRobinArbiterGen;
+		
+--		DaisyChainArbiterGen: if ArbiterType = "DC" generate
+		
+--            DaisyChainArbiter: entity work.CrossbarDCArbiter
+
+--				generic map(
+--					AmountOfPEs => AmountOfPEs
+--				)
+--				port map(
+--					Clock => Clock,
+--					Reset => Reset,
+--					Ack   => arbiterACK(Arbiter),
+--					Grant => arbiterGrant(Arbiter),
+--					Req   => arbiterRequest(Arbiter)
+--				);
+		
+--		end generate DaisyChainArbiterGen;
 
 		ArbConnectGen: for Bridge in 0 to AmountOfPEs - 1 generate
 
 			ArbMap: if Bridge /= Arbiter generate
 
-				arbiterACK(Arbiter) <= bridgeACK(Bridge)(Arbiter);
-				arbiterGrant(Arbiter)(Bridge) <= bridgeGrant(Bridge)(Arbiter);
-				bridgeRequest(Bridge)(Arbiter) <= arbiterRequest(Arbiter)(Bridge);
+				arbiterACK(Arbiter)(Bridge) <= bridgeACK(Bridge);
+				arbiterGrant(Arbiter)(Bridge) <= bridgeGrant(Bridge);
+				bridgeRequest(Bridge) <= arbiterRequest(Arbiter)(Bridge);
 
 			end generate ArbMap;
 
 			ArbGround: if Bridge = Arbiter generate
 
-				arbiterACK(Arbiter) <= '0';
+				arbiterACK(Arbiter)(Bridge) <= '0';
 				arbiterGrant(Arbiter)(Bridge) <= '0';
-				bridgeRequest(Bridge)(Arbiter) <= '0';
+				bridgeRequest(Bridge) <= '0';
 
 			end generate ArbGround;
 

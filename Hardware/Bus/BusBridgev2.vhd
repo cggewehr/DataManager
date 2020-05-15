@@ -111,7 +111,7 @@ begin
 
 
 	-- 
-	DataOut <= dataTristate when currentState = Stransmit else 'Z';
+	DataOut <= dataTristate when currentState = Stransmit else (others => 'Z');
 
 
 	-- 
@@ -144,7 +144,7 @@ begin
 				-- Waits for arbiter grant signal
 				when SwaitForGrant => 
 
-					flitCounter <= DataIn + 2;
+					flitCounter <= to_integer(unsigned(DataIn)) + 2;
 
 					if Grant = '1' then
 
@@ -171,10 +171,10 @@ begin
 
 					-- Determines if this is the last flit of msg
 					if flitCounter = 1 and CreditI = '1' then
-						nextState <= Sstandby;
+						currentState <= Sstandby;
 
 					else
-						nextState <= Stransmit;
+						currentState <= Stransmit;
 
 					end if;
 

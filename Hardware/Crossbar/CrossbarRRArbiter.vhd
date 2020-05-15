@@ -29,7 +29,7 @@ library ieee;
 	use ieee.numeric_std.all;
 
 
-entity RoundRobinArbiter is
+entity CrossbarRRArbiter is
 
 	generic ( 
 		AmountOfPEs : integer
@@ -43,10 +43,10 @@ entity RoundRobinArbiter is
 		Grant : out std_logic_vector(0 to AmountOfPEs - 1)
 	);
 
-end entity RoundRobinArbiter;
+end entity CrossbarRRArbiter;
 
 
-architecture RTL of RoundRobinArbiter is
+architecture RTL of CrossbarRRArbiter is
 
 	signal grant_q  : std_logic_vector(0 to AmountOfPEs - 1);
 	signal pre_req  : std_logic_vector(0 to AmountOfPEs - 1);
@@ -54,10 +54,11 @@ architecture RTL of RoundRobinArbiter is
 	signal isol_lsb : std_logic_vector(0 to AmountOfPEs - 1);
 	signal mask_pre : std_logic_vector(0 to AmountOfPEs - 1);
 	signal win      : std_logic_vector(0 to AmountOfPEs - 1);
+	signal ackReduced : std_logic;
 
 	-- Performs "or" operation between all elements of a given std_logic_vector
 	function OrReduce(inputArray: std_logic_vector) return std_logic is
-		variable orReduced: std_logic := 0;
+		variable orReduced: std_logic := '0';
 	begin
 
 		for i in inputArray'range loop 

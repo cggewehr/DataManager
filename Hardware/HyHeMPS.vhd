@@ -141,7 +141,9 @@ begin
                 )
 
                 port map(
-                    Clock        => RouterInterfaces(WrapperID(i)).Clock,  -- TODO: Map structure clock to clock of its wrapper
+                    --Clock        => RouterInterfaces(WrapperID(i)).Clock,  -- TODO: Map structure clock to clock of its wrapper
+                    --Clock        => Clocks(WrapperID(i)),  -- TODO: Map structure clock to clock of its wrapper
+                    Clock        => Clocks(jsonGetInteger(PlatCFG, "BusWrapperID/" & integer'image(i))),  -- TODO: Map structure clock to clock of its wrapper
                     Reset        => Reset,  -- Global reset, from entity interface
                     PEInterfaces => BusInterfaces(i)  -- TODO: Map to bus interface
                 );
@@ -179,14 +181,15 @@ begin
             CrossbarInstance: entity work.Crossbar
 
                 generic map(
-                    Arbiter          => "RR",
+                    ArbiterType      => "RR",
                     AmountOfPEs      => AmountOfPEsInCrossbars(i) + 1,
                     PEAddresses      => CrossbarPEAddresses(i),
                     BridgeBufferSize => BridgeBufferSize
                 )
 
                 port map(
-                    Clock        => RouterInterfaces(WrapperID(i)).Clock,
+                    --Clock        => RouterInterfaces(WrapperID(i)).Clock,
+                    Clock        => Clocks(jsonGetInteger(PlatCFG, "CrossbarWrapperID/" & integer'image(i))),
                     Reset        => Reset,  -- Global reset, from entity interface
                     PEInterfaces => CrossbarInterfaces(i)  -- TODO: Map to crossbar interface
                 );
