@@ -15,7 +15,6 @@
 --------------------------------------------------------------------------------
 
 
-
 library ieee;
 	use ieee.std_logic_1164.all;
 	use ieee.numeric_std.all;
@@ -28,7 +27,8 @@ entity CrossbarControl is
 
 	generic (
 		PEAddresses: DataWidth_vector;
-		SelfAddress: DataWidth_t
+		SelfAddress: DataWidth_t;
+		IsStandalone: boolean
 	);
 	port (
 		
@@ -40,6 +40,7 @@ entity CrossbarControl is
 		DataInMux: in DataWidth_vector;
 		RXMux: in std_logic_vector(PEAddresses'range);
 		CreditO: out std_logic_vector(PEAddresses'range);
+		NewGrant: in std_logic;
 
 		-- PE Interface
 		PEDataIn: out DataWidth_t;
@@ -69,6 +70,7 @@ architecture RTL of CrossbarControl is
 		
 	end function GetIndexOfActiveTx;
 
+
 	-- Performs "or" operation between all elements of a given std_logic_vector
 	function OrReduce(inputArray: std_logic_vector) return std_logic is
 		variable orReduced: std_logic := '0';
@@ -84,9 +86,11 @@ architecture RTL of CrossbarControl is
 		
 	end function OrReduce;
 
-	function GetIndexOfAddr(Addresses: in DataWidth_vector; AddressOfInterest: in DataWidth_t; IndexToSkip: in integer) return integer is begin
 
-		--for i in Addresses'range loop 
+    -- Searches through a given list of addresses of PEs contained in this crossbar, and returns index of a given address in given list of addresses,
+    -- which matches the MUX selector value which produces the data value associated with the given address
+	function GetIndexOfAddr(Addresses: DataWidth_vector; AddressOfInterest: DataWidth_t; IndexToSkip: integer) return integer is begin
+
 		for i in 1 to Addresses'high loop  -- Ignores wrapper (Addresses[0])
 
 			if i = IndexToSkip then
@@ -105,10 +109,11 @@ architecture RTL of CrossbarControl is
 
 	constant selfIndex: integer := GetIndexOfAddr(PEAddresses, SelfAddress, 0);
 	signal sourceIndex: integer;
+	
+	-- Inverts ADDR flit of every new message going through the wrapper if crossbar is integrated in HyHeMPS
+	signal crossbarDataInv: DataWidth_t;
 
 begin
-
-	CreditO <= (selfIndex => '0', others => PECreditO);
 
 	process(Clock) begin
 
@@ -118,7 +123,6 @@ begin
 				sourceIndex <= 0;
 
 			else
-				--sourceIndex <= GetIndexOfActiveTx(PERx);
 				sourceIndex <= GetIndexOfActiveTx(RXMux);
 
 			end if;
@@ -126,9 +130,19 @@ begin
 		end if;
 
 	end process;
+	
+	-- High order bits <= 0, low order bits <= Target Wrapper ADDR (NoC router decides next hop based on low order bits of ADDR flit)
+	crossbarDataInv(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
+	crossbarDataInv(HalfDataWidth downto 0) <= DataInMux(sourceIndex)(HalfDataWidth - 1 downto 0);
 
-	PEDataIn <= DataInMux(sourceIndex);
+    -- Inverts ADDR flit (<= busDataInv), does nothing to SIZE and payload flits
+	PEDataIn <= DataInMux(sourceIndex) when IsStandalone or NewGrant = '0' else
+	            crossbarDataInv;
 
+    -- 
 	PERx <= OrReduce(RXMux);
+	
+	-- 
+	CreditO <= (selfIndex => PECreditO, others => '0');
 	
 end architecture RTL;

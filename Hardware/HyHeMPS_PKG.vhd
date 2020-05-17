@@ -7,7 +7,7 @@ library IEEE;
     use IEEE.numeric_std.all;
     
 library work;
-    --use work.HeMPS_defaults.all;
+    use work.HeMPS_defaults.all;
     use work.JSON.all;
 
 package HyHeMPS_PKG is
@@ -71,9 +71,9 @@ package HyHeMPS_PKG is
 
     type PEInterface_vector is array(natural range <>) of PEInterface;
 
-    subtype regflit is std_logic_vector(DataWidth - 1 downto 0);
-    subtype regNport is std_logic_vector(4 downto 0); 
-    type arrayNport_regflit is array(4 downto 0) of regflit;
+    --subtype regNport is std_logic_vector(4 downto 0);
+    --subtype regflit is std_logic_vector(DataWidth - 1 downto 0);
+    --type array_regflit is array(4 downto 0) of regflit;
 
     type RouterPort is record
 
@@ -99,13 +99,14 @@ package HyHeMPS_PKG is
         -- Input Interface
         ClockRx: regNport;
         Rx:      regNport;
-        DataIn:  arrayNport_regflit;
+        --DataIn:  arrayNport_regflit;
+        DataIn:  arraynport_regflit;
         CreditO: regNport;
 
         -- Output Interface    
         ClockTx: regNport;
         Tx:      regNport;
-        DataOut: arrayNport_regflit;
+        DataOut: arraynport_regflit;
         CreditI: regNport;
 
     end record RouterInterface;
@@ -122,6 +123,8 @@ package HyHeMPS_PKG is
     function FindMaxPayloadSize(TargetPayloadSizeArray: integer_vector) return integer;
     function BuildHeaders(InjectorJSONConfig: T_JSON; PlatformJSONConfig: T_JSON; HeaderSize: integer; TargetPayloadSizeArray: integer_vector; TargetPEsArray: integer_vector) return HeaderFlits_t;
     function BuildPayloads(InjectorJSONConfig: T_JSON; TargetPayloadSizeArray: integer_vector; TargetPEsArray: integer_vector) return PayloadFlits_t;
+    function getPEPosInBus(PlatformJSONConfig: T_JSON; PEID: integer; BusID: integer) return integer;
+    function getPEPosInCrossbar(PlatformJSONConfig: T_JSON; PEID: integer; CrossbarID: integer) return integer;
 
     -- Misc functions
     procedure UNIFORM (SEED1, SEED2 : inout POSITIVE; X : out REAL); -- Used for random number generation
@@ -396,6 +399,38 @@ package body HyHeMPS_PKG is
         return MaxPayloadSize;
 
     end function FindMaxPayloadSize;
+    
+    
+    -- Returns index of a given PE ID located in a given bus
+    function getPEPosInBus(PlatformJSONConfig: T_JSON; PEID: integer; BusID: integer) return integer is begin
+
+        for i in 0 to jsonGetInteger(PlatformJSONConfig, "AmountOfPEsInBuses/" & integer'image(BusID)) - 1 loop
+        
+            if PEID = jsonGetInteger(PlatformJSONConfig, "BusPEIDs/" & integer'image(BusID) & "/" & integer'image(i)) then
+                return i + 1;  -- Adds 1 to account for wrapper placed @ i = 0
+            end if;
+        
+        end loop;
+        
+        report "PEID " & integer'image(PEID) & "not found in bus ID" & integer'image(BusID) severity failure;
+
+    end function getPEPosInBus;
+    
+    
+    -- Returns index of a given PE ID located in a given crossbar
+    function getPEPosInCrossbar(PlatformJSONConfig: T_JSON; PEID: integer; CrossbarID: integer) return integer is begin
+
+        for i in 0 to jsonGetInteger(PlatformJSONConfig, "AmountOfPEsInCrossbars/" & integer'image(CrossbarID)) - 1 loop
+        
+            if PEID = jsonGetInteger(PlatformJSONConfig, "CrossbarPEIDs/" & integer'image(CrossbarID) & "/" & integer'image(i)) then
+                return i + 1;  -- Adds 1 to account for wrapper placed @ i = 0
+            end if;
+        
+        end loop;
+        
+        report "PEID " & integer'image(PEID) & "not found in crossbar ID" & integer'image(CrossbarID) severity failure;
+
+    end function getPEPosInCrossbar;
 
 
     -- Borrowed from GHDL ieee.math_real implementation (https://github.com/ghdl/ghdl/blob/master/libraries/openieee/math_real-body.vhdl)

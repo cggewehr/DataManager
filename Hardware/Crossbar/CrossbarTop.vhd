@@ -31,7 +31,8 @@ entity Crossbar is
 		ArbiterType: string;
 		AmountOfPEs: integer;
 		PEAddresses: DataWidth_vector;  -- As XY coordinates
-		BridgeBufferSize: integer
+		BridgeBufferSize: integer;
+		IsStandalone: boolean
 	);
 	port(
 		Clock: in std_logic;
@@ -65,9 +66,10 @@ architecture RTL of Crossbar is
 	signal controlCreditO: slv_vector;
 
 	-- Arbiter interface
+	signal arbiterRequest: slv_vector;
 	signal arbiterACK: slv_vector;
 	signal arbiterGrant: slv_vector;
-	signal arbiterRequest: slv_vector;
+	signal arbiterNewGrant: std_logic_vector(0 to AmountOfPEs - 1);
 
 begin
 
@@ -118,7 +120,8 @@ begin
 
 			generic map(
 				PEAddresses => PEAddresses,
-				SelfAddress => PEAddresses(i)
+				SelfAddress => PEAddresses(i),
+				IsStandalone => IsStandalone
 			)
 			port map(
 				
@@ -134,7 +137,10 @@ begin
 				-- Output interface (PE input)
 				PEDataIn  => PEInterfaces(i).DataIn,
 				PERx      => PEInterfaces(i).Rx,
-				PECreditO => PEInterfaces(i).CreditO
+				PECreditO => PEInterfaces(i).CreditO,
+				
+				-- Arbiter interface
+				NewGrant  => arbiterNewGrant(i)
 
 			);
 
@@ -176,7 +182,8 @@ begin
 					Reset => Reset,
 					Ack   => arbiterACK(Arbiter),
 					Grant => arbiterGrant(Arbiter),
-					Req   => arbiterRequest(Arbiter)
+					Req   => arbiterRequest(Arbiter),
+					NewGrant => arbiterNewGrant(Arbiter)
 				);
 
 		end generate RoundRobinArbiterGen;

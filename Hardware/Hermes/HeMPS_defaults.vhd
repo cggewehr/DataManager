@@ -95,7 +95,6 @@ package HeMPS_defaults is
         type buff is array(0 to TAM_BUFFER-1) of regflit;
         type buff_dmni is array(0 to TAM_BUFFER_DMNI-1) of regflit;
 
-
         type arrayNport_reg3 is array((NPORT-1) downto 0) of reg3;
         type arrayNport_reg8 is array((NPORT-1) downto 0) of reg8;
         type arrayNport_regflit is array((NPORT-1) downto 0) of regflit; 

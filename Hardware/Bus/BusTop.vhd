@@ -29,7 +29,8 @@ entity HyBus is
 		Arbiter: string;
 		AmountOfPEs: integer;
 		PEAddresses: DataWidth_vector;  -- As XY coordinates
-		BridgeBufferSize: integer
+		BridgeBufferSize: integer;
+		IsStandalone: boolean
 	);
 	port(
 		Clock: in std_logic;
@@ -55,6 +56,11 @@ architecture RTL of HyBus is
 	-- Bus control signals
 	signal controlRx: std_logic_vector(0 to AmountOfPEs - 1);
 	signal controlCredit: std_logic_vector(0 to AmountOfPEs - 1);
+	signal controlChangeFlit: std_logic;
+	
+	-- Inverts ADDR flit of every new message going through the wrapper if bus is integrated in HyHeMPS
+	signal busDataInv: DataWidth_t;
+	signal dataToWrapper: DataWidth_t;
 
 begin
 
@@ -92,24 +98,7 @@ begin
 			);
 
 	end generate BusBridgeGen;
-
-
-	-- Connects PE interfaces to bus 
-	PEConnectGen: for i in 0 to AmountOfPEs - 1 generate
-
-		-- PE input interface
-		PEInterfaces(i).ClockRx <= Clock;
-		PEInterfaces(i).DataIn <= BusData;
-		PEInterfaces(i).Rx <= controlRx(i);
-		controlCredit(i) <= PEInterfaces(i).CreditO;
-
-		-- PE output interface
-		busData <= PEInterfaces(i).DataOut;
-		busTx <= PEInterfaces(i).Tx;
-		PEInterfaces(i).CreditI <= busCredit;
-
-	end generate PEConnectGen;
-
+	
 
 	-- Controls Rx of PEs based on what PE is currently using the bus
 	BusControl: entity work.BusControl
@@ -128,6 +117,7 @@ begin
 			BusData => busData,
 			BusTx => busTx,
 			BusCredit => busCredit,
+			ChangeFlit => controlChangeFlit,
 
 			-- PE interface
 			PERx => controlRx,
@@ -172,5 +162,39 @@ begin
 	--		);
 
 	--end generate DaisyChainArbiterGen;
+
+
+	-- Connects PE interfaces to bus 
+	PEConnectGen: for i in 0 to AmountOfPEs - 1 generate
+	
+		-- PE input interface (DataIn to be set at the end of this generate statement)
+		PEInterfaces(i).ClockRx <= Clock;
+		PEInterfaces(i).Rx <= controlRx(i);
+		controlCredit(i) <= PEInterfaces(i).CreditO;
+
+		-- PE output interface
+		busData <= PEInterfaces(i).DataOut;
+		busTx <= PEInterfaces(i).Tx;
+		PEInterfaces(i).CreditI <= busCredit;
+		
+		-- This "i" corresponds to a wrapper, map its DataIn to dataToWrapper in order to be able to invert ADDR flit (busDataInv)
+		WrapperConnect: if i = 0 generate
+	        PEInterfaces(i).DataIn <= dataToWrapper;
+	    end generate WrapperConnect;
+	    
+	    -- This "i" corresponds to a PE, map its DataIn to BusData, because inverting ADDR flit is not necessary 
+	    BusConnect: if i /= 0 generate
+	        PEInterfaces(i).DataIn <= BusData;
+	    end generate BusConnect;
+
+	end generate PEConnectGen;
+	
+	-- High order bits <= 0, low order bits <= Target Wrapper ADDR (NoC router decides next hop based on low order bits of ADDR flit)
+	busDataInv(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
+	busDataInv(HalfDataWidth downto 0) <= busData(HalfDataWidth - 1 downto 0);
+	
+	-- Inverts ADDR flit (<= busDataInv), does nothing to SIZE and payload flits
+	dataToWrapper <= busData when IsStandalone or controlChangeFlit = '0' else
+	                 busDataInv;
 	
 end architecture RTL;

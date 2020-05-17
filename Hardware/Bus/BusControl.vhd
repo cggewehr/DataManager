@@ -33,17 +33,18 @@ entity BusControl is
 	port (
 
 		-- Basic
-		Clock     : in std_logic;
-		Reset     : in std_logic;
+		Clock      : in std_logic;
+		Reset      : in std_logic;
 
 		-- Bus interface
-		BusTx     : in std_logic;
-		BusData   : in DataWidth_t;
-		BusCredit : out std_logic;
+		BusTx      : in std_logic;
+		BusData    : in DataWidth_t;
+		BusCredit  : out std_logic;
+		ChangeFlit : out std_logic;
 
 		-- PE interface
-		PERx      : out std_logic_vector(0 to AmountOfPEs - 1);
-		PECredit  : in std_logic_vector(0 to AmountOfPEs - 1)
+		PERx       : out std_logic_vector(0 to AmountOfPEs - 1);
+		PECredit   : in std_logic_vector(0 to AmountOfPEs - 1)
 
 	);
 	
@@ -109,6 +110,7 @@ begin
 			if Reset = '1' then
 
 				busBeingUsed <= '0';
+				ChangeFlit <= '0';
 
 				currentState <= Sreset;
 
@@ -130,6 +132,10 @@ begin
 					targetAddr := BusData;
 					targetIndex <= GetIndexOfAddr(PEAddresses, targetAddr);
 					busBeingUsed <= '1';
+					
+					if targetIndex = 0 then
+					   ChangeFlit <= '1';
+					end if;
 
 					currentState <= Ssize;
 				
@@ -142,6 +148,7 @@ begin
 			elsif currentState = Ssize then
 
 				flitCounter <= to_integer(unsigned(BusData));
+				ChangeFlit <= '0';
 
 				currentState <= Spayload;
 

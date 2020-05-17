@@ -40,7 +40,8 @@ entity CrossbarRRArbiter is
 
 		Req   : in std_logic_vector(0 to AmountOfPEs - 1);
 		Ack   : in std_logic_vector(0 to AmountOfPEs - 1);
-		Grant : out std_logic_vector(0 to AmountOfPEs - 1)
+		Grant : out std_logic_vector(0 to AmountOfPEs - 1);
+		NewGrant: out std_logic
 	);
 
 end entity CrossbarRRArbiter;
@@ -87,6 +88,7 @@ begin
 
 			pre_req <= (others => '0');
 			grant_q <= (others => '0');
+			NewGrant <= '0';
 
 		elsif rising_edge(Clock) then
 
@@ -101,6 +103,12 @@ begin
 
 				grant_q <= win;
 
+			end if;
+			
+			if win /= pre_req then
+			    NewGrant <= '1';
+			else
+			    NewGrant <= '0';
 			end if;
 
 		end if;
