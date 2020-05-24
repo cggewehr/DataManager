@@ -19,10 +19,6 @@ package HyHeMPS_PKG is
     constant SOUTH: integer := 3;
     constant LOCAL: integer := 4;
 
-    -- Common constants (used by all project files)
-    --constant DataWidth: integer := TAM_FLIT; -- TAM_FLIT is declared in HeMPS_defaults, defaulted to 32
-    --constant HalfDataWidth: integer := TAM_FLIT/2;
-    --constant QuarterDataWidth: integer := TAM_FLIT/4;
     constant DataWidth: integer := 32; 
     constant HalfDataWidth: integer := DataWidth/2;
     constant QuarterDataWidth: integer := DataWidth/4;
@@ -32,17 +28,8 @@ package HyHeMPS_PKG is
     subtype QuarterDataWidth_t is std_logic_vector(QuarterDataWidth - 1 downto 0);
 
     type DataWidth_vector is array(natural range <>) of DataWidth_t;
-    --subtype DataWidth_vector_2d is array(0 to AmountOfPEs - 1) of DataWidth_vector;
-
-    -- integer_vector and real_vector as standard types are available only in VHDL-2008
-    --type integer_vector is array(natural range <>) of integer;
-    --type real_vector is array(natural range <>) of real;
-
-    -- 2D array of std_logic_vector
-    type slv_vector is array(natural range <>) of std_logic_vector;
-
-    constant UINT32MaxValue: integer := 2147483646; -- Xilinx for some reason only allows an integer to go up to this value, even if range is defined as 0 to 4294967295
-    --constant UINT32MaxValue: integer := 4294967295;
+    type HalfDataWidth_vector is array(natural range <>) of HalfDataWidth_t;
+    type QuarterDataWidth_vector is array(natural range <>) of QuarterDataWidth_t;
 
     -- Typedefs for headers and payloads
     type HeaderFlits_t is array(integer range <>, integer range <>) of DataWidth_t;
@@ -71,35 +58,12 @@ package HyHeMPS_PKG is
 
     type PEInterface_vector is array(natural range <>) of PEInterface;
 
-    --subtype regNport is std_logic_vector(4 downto 0);
-    --subtype regflit is std_logic_vector(DataWidth - 1 downto 0);
-    --type array_regflit is array(4 downto 0) of regflit;
-
-    type RouterPort is record
-
-        -- Input Interface
-        ClockRx: std_logic;
-        Rx:      std_logic;
-        DataIn:  DataWidth_t;
-        CreditO: std_logic;
-
-        -- Output Interface    
-        ClockTx: std_logic;
-        Tx:      std_logic;
-        DataOut: DataWidth_t;
-        CreditI: std_logic;
-
-    end record RouterPort;
-
-    type RouterPort_vector is array(natural range <>) of RouterPort;
-
     -- 
     type RouterInterface is record
     
         -- Input Interface
         ClockRx: regNport;
         Rx:      regNport;
-        --DataIn:  arrayNport_regflit;
         DataIn:  arraynport_regflit;
         CreditO: regNport;
 
@@ -112,6 +76,17 @@ package HyHeMPS_PKG is
     end record RouterInterface;
 
     type RouterInterface_vector is array(natural range <>) of RouterInterface;
+    
+    type PEInfo is record
+    
+        InterfacingStructure: string(1 to 3);
+        StructID: integer;
+        PosInStruct: integer;
+        XYAddress: HalfDataWidth_t;
+        
+    end record;
+    
+    type PEInfo_vector is array(natural range <>) of PEInfo;
 
     -- Adapted functions from HeMPS_defaults
     function RouterAddress(GlobalAddress: integer; NUMBER_PROCESSORS_X: integer) return HalfDataWidth_t;
@@ -119,12 +94,12 @@ package HyHeMPS_PKG is
     -- Function declarations for organizing data from JSON config file
     function FillTargetMessageSizeArray(TargetPayloadSizeArray: integer_vector; HeaderSize: integer) return integer_vector;
     function FillSourceMessageSizeArray(SourcePayloadSizeArray: integer_vector; HeaderSize: integer) return integer_vector;
-    function FillWrapperAddressTableArray(PlatformJSONConfig: T_JSON; TargetPEsArray: integer_vector) return integer_vector;
+    --function FillWrapperAddressTableArray(PlatformJSONConfig: T_JSON; TargetPEsArray: integer_vector) return integer_vector;
     function FindMaxPayloadSize(TargetPayloadSizeArray: integer_vector) return integer;
-    function BuildHeaders(InjectorJSONConfig: T_JSON; PlatformJSONConfig: T_JSON; HeaderSize: integer; TargetPayloadSizeArray: integer_vector; TargetPEsArray: integer_vector) return HeaderFlits_t;
-    function BuildPayloads(InjectorJSONConfig: T_JSON; TargetPayloadSizeArray: integer_vector; TargetPEsArray: integer_vector) return PayloadFlits_t;
-    function getPEPosInBus(PlatformJSONConfig: T_JSON; PEID: integer; BusID: integer) return integer;
-    function getPEPosInCrossbar(PlatformJSONConfig: T_JSON; PEID: integer; CrossbarID: integer) return integer;
+    function BuildHeaders(InjCFG: T_JSON; PlatCFG: T_JSON; HeaderSize: integer; TargetPayloadSizeArray: integer_vector; TargetPEsArray: integer_vector) return HeaderFlits_t;
+    function BuildPayloads(InjCFG: T_JSON; TargetPayloadSizeArray: integer_vector; TargetPEsArray: integer_vector) return PayloadFlits_t;
+    function GetPEInfo(PlatCFG: T_JSON) return PEInfo_vector;
+    function GetPEAddresses(PlatCFG: T_JSON; PEInfo: PEInfo_vector; InterfacingStructure: string(1 to 3); StructID: integer) return HalfDataWidth_vector; 
 
     -- Misc functions
     procedure UNIFORM (SEED1, SEED2 : inout POSITIVE; X : out REAL); -- Used for random number generation
@@ -196,17 +171,19 @@ package body HyHeMPS_PKG is
 
 
     -- Builds header for each target PE
-    function BuildHeaders(InjectorJSONConfig: T_JSON ; PlatformJSONConfig: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: integer_vector ; TargetPEsArray: integer_vector) return HeaderFlits_t is
+    function BuildHeaders(InjCFG: T_JSON ; PlatCFG: T_JSON ; HeaderSize: integer ; TargetPayloadSizeArray: integer_vector ; TargetPEsArray: integer_vector) return HeaderFlits_t is
         
         variable Headers: HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
         variable headerFlitString: string(1 to 4);
         variable wrapperAddress: integer;
-        variable timestampFlag: integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
-        constant NUMBER_PROCESSORS_X: integer := jsonGetInteger(PlatformJSONConfig, "NUMBER_PROCESSORS_X");
+        variable timestampFlag: integer := jsonGetInteger(InjCFG, "timestampFlag");
+        --constant NUMBER_PROCESSORS_X: integer := jsonGetInteger(PlatformJSONConfig, "NUMBER_PROCESSORS_X");
+        constant NoCXSize: integer := jsonGetInteger(PlatCFG, "BaseNoCDimensions/0");
+        constant SquareNoCBound: integer := jsonGetInteger(PlatCFG, "SquareNoCBound");
 	    
         -- Bus Adaptations
-	    variable myID:		integer := jsonGetInteger(InjectorJSONConfig, "PEPos");
-        variable myWrapper:	integer := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(myID));
+	    variable myID:		integer := jsonGetInteger(InjCFG, "PEPos");
+        variable myWrapper:	integer := jsonGetInteger(PlatCFG, "WrapperAddresses/" & integer'image(myID));
 
     begin
 
@@ -219,7 +196,7 @@ package body HyHeMPS_PKG is
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
 
                 --                                                                               Translates loop iterator to PE ID
-                headerFlitString := jsonGetString(InjectorJSONConfig, ( "Headers/" & "Header" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit)));
+                headerFlitString := jsonGetString(InjCFG, ( "Headers/" & "Header" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit)));
 
                 -- A header flit can be : "ADDR" (Address of target PE in network)
                 --                        "SIZE" (Size of payload in this message)
@@ -228,23 +205,34 @@ package body HyHeMPS_PKG is
 
                 if headerFlitString = "ADDR" then 
 
-                    -- Get the wrapper address
-                    wrapperAddress := jsonGetInteger(PlatformJSONConfig, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
+                    -- Get target's wrapper address
+                    wrapperAddress := jsonGetInteger(PlatCFG, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
 
-                    if wrapperAddress = 0 or wrapperAddress = myWrapper then --If the target is: In NoC OR In the same structure
-
-        	         	Headers(target, flit)((DataWidth/2) - 1 downto 0):= RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+                    --if wrapperAddress = 0 or wrapperAddress = myWrapper then --If the target is: In NoC OR In the same structure
+                    if wrapperAddress = myWrapper then--or wrapperAddress = TargetPEsArray(target) then -- If the target is in the same structure (Bus or XBR) OR is in base NoC
+ 
+                        -- Target is in same structure: Global XY coordinates @ least significative bits, most significative bits are irrelevant
+        	         	--Headers(target, flit)((DataWidth/2) - 1 downto 0):= RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+                        Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(TargetPEsArray(target), SquareNoCBound);
             		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
 
-            	    else  -- Combine the wrapper address with the PE address			
+                    elsif wrapperAddress = TargetPEsArray(target) then  -- Target is in NoC
+    
+                        --Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+                        Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(TargetPEsArray(target), SquareNoCBound);
+            		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
 
-            		    -- Global XY coordinates @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
-            		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+        	        else  -- Combine the wrapper address with the PE address (target is in different structure)			
 
-            		    -- Wrapper XY coordinates @ lets significative bits
-            		    Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
+        		        -- Global XY coordinates (in square NoC) @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
+        		        --Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
+                        Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), SquareNoCBound);
 
-            	    end if;
+        		        -- Wrapper XY coordinates (in base NoC) @ least significative bits
+        		        --Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
+        		        Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NoCXSize);
+
+        	        end if;
 
                 elsif headerFlitString = "SIZE" then
 
@@ -276,13 +264,13 @@ package body HyHeMPS_PKG is
 
 
     -- Builds payload for each target PE
-    function BuildPayloads(InjectorJSONConfig: T_JSON ; TargetPayloadSizeArray: integer_vector ; TargetPEsArray: integer_vector) return PayloadFlits_t is
+    function BuildPayloads(InjCFG: T_JSON ; TargetPayloadSizeArray: integer_vector ; TargetPEsArray: integer_vector) return PayloadFlits_t is
 
         variable MaxPayloadSize : integer := FindMaxPayloadSize(TargetPayloadSizeArray);
         variable Payloads : PayloadFlits_t(TargetPEsArray'range, 0 to MaxPayloadSize - 1);
         variable payloadFlitString : string(1 to 5);
-        variable timestampFlag : integer := jsonGetInteger(InjectorJSONConfig, "timestampFlag");
-        variable amountOfMessagesSentFlag : integer := jsonGetInteger(InjectorJSONConfig, "amountOfMessagesSentFlag");
+        variable timestampFlag : integer := jsonGetInteger(InjCFG, "timestampFlag");
+        variable amountOfMessagesSentFlag : integer := jsonGetInteger(InjCFG, "amountOfMessagesSentFlag");
 
         -- RNG
         variable RNGSeed1: integer := 22;
@@ -306,7 +294,7 @@ package body HyHeMPS_PKG is
                 end if;
 
                 --                                                                                Translates loop iterator to PE ID
-                payloadFlitString := jsonGetString(InjectorJSONConfig, "Payloads/" & "Payload" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit) );
+                payloadFlitString := jsonGetString(InjCFG, "Payloads/" & "Payload" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit) );
 
                 -- A payload flit can be : "PEPOS" (PE position in network), 
                 --                         "APPID" (ID of app being emulated by this injector), 
@@ -319,15 +307,15 @@ package body HyHeMPS_PKG is
                 
                 if payloadFlitString = "PEPOS" then
 
-                    Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjectorJSONConfig, "PEPos"), DataWidth));
+                    Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjCFG, "PEPos"), DataWidth));
 
                 elsif payloadFlitString = "APPID" then
 
-                    Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjectorJSONConfig, "APPID"), DataWidth));
+                    Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjCFG, "APPID"), DataWidth));
 
                 elsif payloadFlitString = "THDID" then
 
-                    Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjectorJSONConfig, "ThreadID"), DataWidth));
+                    Payloads(target, flit) := std_logic_vector(to_unsigned(jsonGetInteger(InjCFG, "ThreadID"), DataWidth));
 
                 elsif payloadFlitString = "AVGPT" then
 
@@ -401,43 +389,126 @@ package body HyHeMPS_PKG is
     end function FindMaxPayloadSize;
     
     
-    -- Returns index of a given PE ID located in a given bus
-    function getPEPosInBus(PlatformJSONConfig: T_JSON; PEID: integer; BusID: integer) return integer is begin
-
-        for i in 0 to jsonGetInteger(PlatformJSONConfig, "AmountOfPEsInBuses/" & integer'image(BusID)) - 1 loop
+    function GetPEInfo(PlatCFG: T_JSON) return PEInfo_vector is
         
-            if PEID = jsonGetInteger(PlatformJSONConfig, "BusPEIDs/" & integer'image(BusID) & "/" & integer'image(i)) then
-                return i + 1;  -- Adds 1 to account for wrapper placed @ i = 0
+        constant AmountOfPEs: integer := jsonGetInteger(PlatCFG, "AmountOfPEs");
+        constant AmountOfBuses: integer := jsonGetInteger(PlatCFG, "AmountOfBuses");
+        constant AmountOfPEsInBuses: integer_vector(0 to AmountOfBuses - 1) := jsonGetIntegerArray(PlatCFG, "AmountOfPEsInBuses");
+        constant AmountOfCrossbars: integer := jsonGetInteger(PlatCFG, "AmountOfCrossbars");
+        constant AmountOfPEsInCrossbars: integer_vector(0 to AmountOfCrossbars - 1) := jsonGetIntegerArray(PlatCFG, "AmountOfPEsInCrossbars");
+        constant SquareNoCBound: integer := jsonGetInteger(PlatCFG, "SquareNoCBound");
+        constant WrapperAddresses: integer_vector(0 to AmountOfPEs - 1) := jsonGetIntegerArray(PlatCFG, "WrapperAddresses");
+        
+        variable PEInfoArray: PEInfo_vector := (others => (
+            InterfacingStructure => "NUL",
+            StructID => -1,
+            PosInStruct => -1,
+            XYAddress => (others => '1')
+        ));
+        
+        variable PE: integer;
+
+    begin
+    
+        -- Loop through every bus
+        for BusID in 0 to AmountOfBuses - 1 loop
+        
+            -- Loop through every PE in current bus
+            for PEInBus in 0 to AmountOfPEsInBuses(BusID) - 1 loop
+            
+                PE := jsonGetInteger(PlatCFG, "BusPEIDs/" & "Bus" & integer'image(BusID) & "/" & integer'image(PEInBus));
+                
+                PEInfoArray(PE).InterfacingStructure := "BUS";
+                PEInfoArray(PE).StructID := BusID;
+                PEInfoArray(PE).PosInStruct := PEInBus;
+                PEInfoArray(PE).XYAddress := RouterAddress(PE, SquareNoCBound);
+                
+            end loop; 
+        
+        end loop;
+        
+        -- Loop through every crossbar
+        for CrossbarID in 0 to AmountOfCrossbars - 1 loop
+        
+            -- Loop through every PE in current crossbar
+            for PEInCrossbar in 0 to AmountOfPEsInCrossbars(CrossbarID) - 1 loop
+            
+                PE := jsonGetInteger(PlatCFG, "CrossbarPEIDs/" & "Crossbar" & integer'image(CrossbarID) & "/" & integer'image(PEInCrossbar));
+                
+                PEInfoArray(PE).InterfacingStructure := "XBR";
+                PEInfoArray(PE).StructID := CrossbarID;
+                PEInfoArray(PE).PosInStruct := PEInCrossbar;
+                PEInfoArray(PE).XYAddress := RouterAddress(PE, SquareNoCBound);
+                
+            end loop; 
+        
+        end loop;  
+        
+        -- Loop through every PE
+        for PE in 0 to AmountOfPEs - 1 loop
+        
+            -- Checks if this PE has already been processed. If so, skips to next loop iteration
+            if PEInfoArray(PE).InterfacingStructure /= "NUL" then
+                next;
+                
+            else
+                
+                PEInfoArray(PE).InterfacingStructure := "NOC";
+                PEInfoArray(PE).StructID := WrapperAddresses(PE);
+                PEInfoArray(PE).PosInStruct := WrapperAddresses(PE);
+                PEInfoArray(PE).XYAddress := RouterAddress(PE, SquareNoCBound);
+                
+            end if;
+            
+        end loop;
+        
+        return PEInfoArray;
+    
+    end function GetPEInfo;
+    
+    
+    function GetPEAddresses(PlatCFG: T_JSON; PEInfo: PEInfo_vector; InterfacingStructure: string(1 to 3); StructID: integer) return HalfDataWidth_vector is
+        variable NoCSquareBound: integer := jsonGetInteger(PlatCFG, "NoCSquareBound");
+        variable PEAddresses: HalfDataWidth_vector;
+        variable AmountOfPEsInStruct: integer;  -- Amount of PEs in given struct
+        variable WrapperID: integer;            -- ADDR of wrapper of this struct in base NoC
+    begin
+    
+        -- Determine Amount of PEs in given struct
+        if InterfacingStructure = "BUS" then
+            AmountOfPEsInStruct := jsonGetInteger(PlatCFG, "AmountOfPEsInBuses/" & integer'image(StructID));
+            WrapperID := jsonGetInteger(PlatCFG, "BusWrapperIDs/" & integer'image(StructID));
+        elsif InterfacingStructure = "XBR" then
+            AmountOfPEsInStruct := jsonGetInteger(PlatCFG, "AmountOfPEsInCrossbars/" & integer'image(StructID));
+            WrapperID := jsonGetInteger(PlatCFG, "CrossbarWrapperIDs/" & integer'image(StructID));
+        else
+            report "Unexpected InterfacingStructure value:" & InterfacingStructure severity failure;
+        end if;
+            
+        -- Set PE addresses
+        for i in PEInfo'range loop
+        
+            if PEInfo(i).InterfacingStructure = InterfacingStructure and PEInfo(i).StructID = StructID then
+            
+                PEAddresses(PEInfo(i).PosInStruct) := PEInfo(i).XYAddress;
+            
             end if;
         
         end loop;
         
-        report "PEID " & integer'image(PEID) & "not found in bus ID" & integer'image(BusID) severity failure;
-
-    end function getPEPosInBus;
+        -- Set Wrapper address at the end of array being returned
+        PEAddresses(AmountOfPEsInStruct) := RouterAddress(WrapperID, NoCSquareBound);
+        
+        return PEAddresses;
     
-    
-    -- Returns index of a given PE ID located in a given crossbar
-    function getPEPosInCrossbar(PlatformJSONConfig: T_JSON; PEID: integer; CrossbarID: integer) return integer is begin
-
-        for i in 0 to jsonGetInteger(PlatformJSONConfig, "AmountOfPEsInCrossbars/" & integer'image(CrossbarID)) - 1 loop
-        
-            if PEID = jsonGetInteger(PlatformJSONConfig, "CrossbarPEIDs/" & integer'image(CrossbarID) & "/" & integer'image(i)) then
-                return i + 1;  -- Adds 1 to account for wrapper placed @ i = 0
-            end if;
-        
-        end loop;
-        
-        report "PEID " & integer'image(PEID) & "not found in crossbar ID" & integer'image(CrossbarID) severity failure;
-
-    end function getPEPosInCrossbar;
+    end function GetPEAddresses;
 
 
     -- Borrowed from GHDL ieee.math_real implementation (https://github.com/ghdl/ghdl/blob/master/libraries/openieee/math_real-body.vhdl)
     -- Returns a pseudo-random value between 0 and 1 (Algorithm from: Pierre L'Ecuyer, CACM June 1988 Volume 31 Number 6 page 747 figure 3)
-    procedure UNIFORM (SEED1, SEED2: inout POSITIVE; X: out REAL) is
-        variable z, k : Integer;
-        variable s1, s2 : Integer;
+    procedure UNIFORM(SEED1, SEED2: inout POSITIVE; X: out REAL) is
+        variable z, k: integer;
+        variable s1, s2: integer;
     begin
 
         k := seed1 / 53668;
@@ -498,4 +569,3 @@ package body HyHeMPS_PKG is
 
 
 end package body HyHeMPS_PKG;
-

@@ -26,8 +26,8 @@ library work;
 entity CrossbarControl is
 
 	generic (
-		PEAddresses: DataWidth_vector;
-		SelfAddress: DataWidth_t;
+		PEAddresses: HalfDataWidth_vector;
+		SelfAddress: HalfDataWidth_t;
 		IsStandalone: boolean
 	);
 	port (
@@ -89,9 +89,9 @@ architecture RTL of CrossbarControl is
 
     -- Searches through a given list of addresses of PEs contained in this crossbar, and returns index of a given address in given list of addresses,
     -- which matches the MUX selector value which produces the data value associated with the given address
-	function GetIndexOfAddr(Addresses: DataWidth_vector; AddressOfInterest: DataWidth_t; IndexToSkip: integer) return integer is begin
+	function GetIndexOfAddr(Addresses: HalfDataWidth_vector; AddressOfInterest: HalfDataWidth_t; IndexToSkip: integer) return integer is begin
 
-		for i in 1 to Addresses'high loop  -- Ignores wrapper (Addresses[0])
+		for i in 0 to Addresses'high - 1 loop  -- Ignores wrapper (Last element of Addresses[])
 
 			if i = IndexToSkip then
 				next;
@@ -103,7 +103,7 @@ architecture RTL of CrossbarControl is
 
 		end loop;
 
-		return 0;  -- Return index of wrapper (always 0) if ADDR was not found in crossbar
+		return 0;  -- Return index of wrapper if given ADDR was not found in crossbar
 		
 	end function GetIndexOfAddr;
 

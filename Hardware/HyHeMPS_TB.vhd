@@ -32,11 +32,11 @@ end entity HyHeMPS_TB;
 architecture RTL of HyHeMPS_TB is
 
     constant PlatformConfigFile: string := "flow/PlatformConfig.json";
-    constant PlatformJSONConfig: T_JSON := jsonLoad(PlatformConfigFile);
+    constant PlatCFG: T_JSON := jsonLoad(PlatformConfigFile);
 
-    constant AmountOfPEs: integer := jsonGetInteger(PlatformJSONConfig, "AmountOfPEs");
-    constant NoCXSize: integer := jsonGetInteger(PlatformJSONConfig, "BaseNoCDimensions/0");
-    constant NoCYSize: integer := jsonGetInteger(PlatformJSONConfig, "BaseNoCDimensions/1");
+    constant AmountOfPEs: integer := jsonGetInteger(PlatCFG, "AmountOfPEs");
+    constant NoCXSize: integer := jsonGetInteger(PlatCFG, "BaseNoCDimensions/0");
+    constant NoCYSize: integer := jsonGetInteger(PlatCFG, "BaseNoCDimensions/1");
     constant AmountOfNoCNodes: integer := NoCXSize * NoCYSize;
 
     signal PEInterfaces: PEInterface_vector(0 to AmountOfPEs - 1);
@@ -44,7 +44,7 @@ architecture RTL of HyHeMPS_TB is
     signal Reset: std_logic := '1';
     signal Clocks: std_logic_vector(0 to AmountOfNoCNodes - 1);
 
-    procedure GenerateClock(constant ClockPeriod: in time ; signal Clock: out std_logic) is begin
+    procedure GenerateClock(constant ClockPeriod: in time; signal Clock: out std_logic) is begin
 
         ClockLoop: loop
 
@@ -67,7 +67,7 @@ begin
     ClockGen: for i in 0 to AmountOfNoCNodes - 1 generate
         signal ClockPeriods: real_vector;
     begin
-        ClockPeriods(i) <= jsonGetReal(PlatformJSONConfig, "RouterClockPeriods/" & integer'image(i));
+        ClockPeriods(i) <= jsonGetReal(PlatCFG, "RouterClockPeriods/" & integer'image(i));
         GenerateClock(ClockPeriods(i) * 1 ns, Clocks(i));
 
     end generate ClockGen;

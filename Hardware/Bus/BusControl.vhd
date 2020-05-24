@@ -27,7 +27,7 @@ entity BusControl is
 
 	generic(
 	    AmountOfPEs: integer;
-		PEAddresses: DataWidth_vector
+		PEAddresses: HalfDataWidth_vector
 	);
 
 	port (
@@ -67,10 +67,9 @@ architecture RTL of BusControl is
 	signal busBeingUsed: std_logic;
 
 	-- Returns index of a given element in a given array
-	function GetIndexOfAddr(Addresses: in DataWidth_vector; AddressOfInterest: in DataWidth_t) return integer is begin
+	function GetIndexOfAddr(Addresses: HalfDataWidth_vector; AddressOfInterest: HalfDataWidth_t) return integer is begin
 
-		--for i in Addresses'range loop 
-		for i in 1 to Addresses'high loop  -- Ignores wrapper (Addresses[0])
+		for i in 0 to Addresses'high - 1 loop  -- Ignores wrapper (Last element of Addresses[])
 
 			if Addresses(i) = AddressOfInterest then
 				return i;
@@ -79,7 +78,7 @@ architecture RTL of BusControl is
 
 		end loop;
 
-		return 0;  -- Return index of wrapper (always 0) if ADDR was not found in bus
+		return Addresses'high;  -- Return index of wrapper if given ADDR was not found in bus
 		
 	end function GetIndexOfAddr;
 
@@ -101,7 +100,7 @@ begin
 		-- This index is then registered in register of bit width proportional to the amount of PEs in this bus
 		-- Registering targetIndex instead of targetAddr implies synthesizing a smaller bit width register 
 		-- (targetAddr must be as wide as a flit, but not targetIndex) 
-		variable targetAddr: DataWidth_t;
+		variable targetAddr: HalfDataWidth_t;
 
 	begin
 
@@ -129,7 +128,7 @@ begin
 
 				if BusTx = '1' then
 
-					targetAddr := BusData;
+					targetAddr := BusData(HalfDataWidth - 1 downto 0);
 					targetIndex <= GetIndexOfAddr(PEAddresses, targetAddr);
 					busBeingUsed <= '1';
 					

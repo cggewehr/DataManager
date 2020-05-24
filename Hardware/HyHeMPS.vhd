@@ -11,11 +11,10 @@
 --------------------------------------------------------------------------------
 -- Changelog   : v0.01 - Initial implementation
 --------------------------------------------------------------------------------
--- TODO        : Implement add wrapper bridge to bus/crossbar interface
---               Map structure clock to clock of its wrapper
---               Add WrapperInterfacingStructure array to JSON config
---               Add "isNoC", "isBus" and "isCrossbar" to JSON config
---               Add "BridgeBufferSize" to JSON config
+-- TODO        : Add "BridgeBufferSize" to JSON config
+--               Map wrapper to last index of its structure instead of 0
+--               Add "StandaloneBus" and "StandaloneCrossbar" booleans to JSON config
+--               Generalize "BridgeBufferSize" to any size per structure
 --------------------------------------------------------------------------------
 
 
@@ -29,12 +28,12 @@ library work;
 
 
 entity HyHeMPS is
+
     generic (
         PlatformConfigFile: string;
         AmountOfPEs: integer;
         AmountOfNoCNodes: integer
     );
-
     port (
         Clocks: in std_logic_vector(0 to AmountOfNoCNodes - 1);
         Reset: in std_logic;
@@ -48,97 +47,105 @@ architecture RTL of HyHeMPS is
 
     -- Reads platform JSON config file
     constant PlatCFG: T_JSON := jsonLoad(PlatformConfigFile);
-
+    
     -- Base NoC parameters (from JSON config)
+    constant NoCXSize: integer := jsonGetInteger(PlatCFG, "BaseNoCDimensions/0");
+    constant NoCYSize: integer := jsonGetInteger(PlatCFG, "BaseNoCDimensions/1");
     constant SquareNoCBound: integer := jsonGetInteger(PlatCFG, "SquareNoCBound");
-    signal LocalPortInterfaces: RouterPort_vector(0 to AmountOfNoCNodes - 1);
+    signal LocalPortInterfaces: PEInterface_vector(0 to AmountOfNoCNodes - 1);
+    constant WrapperAddresses: integer_vector(0 to AmountOfPEs - 1) := jsonGetIntegerArray(PlatCFG, "WrapperAddresses");
 
     -- Buses Parameters (from JSON config)
     constant AmountOfBuses: integer := jsonGetInteger(PlatCFG, "AmountOfBuses");
     constant AmountOfPEsInBuses: integer_vector(0 to AmountOfBuses - 1) := jsonGetIntegerArray(PlatCFG, "AmountOfPEsInBuses");
     constant SizeOfLargestBus: integer := jsonGetInteger(PlatCFG, "LargestBus");
-
-    subtype BusArrayOfInterfaces is PEInterface_vector(0 to SizeOfLargestBus - 1);
+    constant BusWrapperIDs: integer_vector(0 to AmountOfBuses - 1) := jsonGetIntegerArray(PlatCFG, "BusWrapperIDs");
+    constant IsStandaloneBus: boolean := jsonGetBoolean(PlatCFG, "IsStandaloneBus");
+    
+    subtype BusArrayOfInterfaces is PEInterface_vector(0 to SizeOfLargestBus);  -- PEs + wrapper
     type BusInterfaces_t is array(natural range <>) of BusArrayOfInterfaces;
     signal BusInterfaces: BusInterfaces_t(0 to AmountOfBuses - 1);
-
-    subtype BusPEAddresses_t is DataWidth_vector(0 to SizeOfLargestBus);  -- PEs + wrapper
-    type BusPEAddresses_vector is array(natural range <>) of BusPEAddresses_t;
-    signal BusPEAddresses: BusPEAddresses_vector(0 to AmountOfBuses - 1);
 
     -- Crossbars Parameters (from JSON config)
     constant AmountOfCrossbars: integer := jsonGetInteger(PlatCFG, "AmountOfCrossbars");
     constant AmountOfPEsInCrossbars: integer_vector(0 to AmountOfCrossbars - 1) := jsonGetIntegerArray(PlatCFG, "AmountOfPEsInCrossbars");
     constant SizeOfLargestCrossbar: integer := jsonGetInteger(PlatCFG, "LargestCrossbar");
-
-    subtype CrossbarArrayOfInterfaces is PEInterface_vector(0 to SizeOfLargestBus - 1);
+    constant CrossbarWrapperIDs: integer_vector(0 to AmountOfCrossbars - 1) := jsonGetIntegerArray(PlatCFG, "CrossbarWrapperIDs");
+    constant IsStandaloneCrossbar: boolean := jsonGetBoolean(PlatCFG, "IsStandaloneCrossbar");
+    
+    subtype CrossbarArrayOfInterfaces is PEInterface_vector(0 to SizeOfLargestCrossbar);
     type CrossbarInterfaces_t is array(natural range <>) of CrossbarArrayOfInterfaces;
     signal CrossbarInterfaces: CrossbarInterfaces_t(0 to AmountOfCrossbars - 1);
-
-    subtype CrossbarPEAddresses_t is DataWidth_vector(0 to SizeOfLargestCrossbar);  -- PEs + wrapper
-    type CrossbarPEAddresses_vector is array(natural range <>) of CrossbarPEAddresses_t;
-    signal CrossbarPEAddresses: CrossbarPEAddresses_vector(0 to AmountOfCrossbars - 1);
-
+    
     -- 
     constant BridgeBufferSize: integer := jsonGetInteger(PlatCFG, "BridgeBufferSize");
+    
+    -- Reads PE topology information
+    constant PEInfo: PEInfo_vector := GetPEInfo(PlatCFG);
 
 begin
 
-    -- Instantiates Hermes NoC
-    NocGen: entity work.Hermes
+    -- Instantiates Hermes NoC, if no standalone structure is to be instantiated
+    NoCCond: if (not IsStandaloneBus) and (not IsStandaloneCrossbar) generate
+    
+        NocGen: entity work.Hermes
 
-        generic map(
-            NoCXSize => jsonGetInteger(PlatCFG, "BaseNoCDimensions/0"),
-            NoCYSize => jsonGetInteger(PlatCFG, "BaseNoCDimensions/1")
-        )
-        port map (
-            Clocks => Clocks,
-            Reset => Reset,
-            LocalPortInterfaces => LocalPortInterfaces
-        );
-
-     
+            generic map(
+                NoCXSize => NoCXSize,
+                NoCYSize => NoCYSize
+            )
+            port map(
+                Clocks => Clocks,
+                Reset => Reset,
+                LocalPortInterfaces => LocalPortInterfaces
+            );
+    
+    end generate NoCCond;
+    
+    
     -- Instantiate buses, if any are to be instantiated
     BusesCond: if AmountOfBuses > 0 generate
 
         BusesGen: for i in 0 to AmountOfBuses - 1 generate
-            signal WrapperID: integer_vector(0 to AmountOfBuses - 1);
+            
+            subtype BusPEAddresses_t is HalfDataWidth_vector(0 to SizeOfLargestBus);  -- PEs + wrapper
+            type BusPEAddresses_vector is array(natural range <>) of BusPEAddresses_t;
+            
+            function GetBusPEAddresses(PEInfo: PEInfo_vector) return BusPEAddresses_vector is
+                variable BusPEAddresses: BusPEAddresses_vector;
+            begin
+            
+                for i in 0 to AmountOfBuses - 1 loop
+                    BusPEAddresses(i) := GetPEAddresses(PlatCFG, PEInfo, "BUS", i);
+                end loop;
+                
+                return BusPEAddresses;
+            
+            end function GetBusPEAddresses;
+            
+            constant BusPEAddresses: BusPEAddresses_vector(0 to AmountOfBuses - 1) := GetBusPEAddresses(PEInfo);
+
         begin
-
-            WrapperID(i) <= jsonGetInteger(PlatCFG, "BusWrapperID/" & integer'image(i));
-
-            -- Adds bridge to crossbar interface
-            LocalPortInterfaces(WrapperID(i)).ClockRx <= BusInterfaces(i)(0).ClockRx;
-            LocalPortInterfaces(WrapperID(i)).Rx <= BusInterfaces(i)(0).Rx;
-            LocalPortInterfaces(WrapperID(i)).DataIn <= BusInterfaces(i)(0).DataIn;
-            LocalPortInterfaces(WrapperID(i)).CreditI <= BusInterfaces(i)(0).CreditI;
-            BusInterfaces(i)(0).ClockTx <= LocalPortInterfaces(WrapperID(i)).ClockTx;
-            BusInterfaces(i)(0).Tx <= LocalPortInterfaces(WrapperID(i)).Tx;
-            BusInterfaces(i)(0).DataOut <= LocalPortInterfaces(WrapperID(i)).DataOut;
-            BusInterfaces(i)(0).CreditO <= LocalPortInterfaces(WrapperID(i)).CreditO;
-
-            -- Adds this wrapper's address in XY coordinates to PEAddresses array to be passed to its bus
-            BusPEAddresses(i)(0)(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
-            BusPEAddresses(i)(0)(HalfDataWidth - 1 downto 0) <= RouterAddress(WrapperID(i), SquareNoCBound);
+        
+            assert false report "Instantiated bus " & integer'image(i) & " with " & integer'image(AmountOfPEsInBuses(i) + 1) & " elements" severity note;
 
             BusInstance: entity work.HyBus
 
                 generic map(
                     Arbiter          => "RR",
-                    AmountOfPEs      => AmountOfPEsInBuses(i) + 1, 
+                    AmountOfPEs      => AmountOfPEsInBuses(i) + 1,
                     PEAddresses      => BusPEAddresses(i),
                     BridgeBufferSize => BridgeBufferSize,
-                    IsStandalone     => false
+                    IsStandalone     => IsStandaloneBus
                 )
                 port map(
                     --Clock        => RouterInterfaces(WrapperID(i)).Clock,  -- TODO: Map structure clock to clock of its wrapper
                     --Clock        => Clocks(WrapperID(i)),  -- TODO: Map structure clock to clock of its wrapper
-                    Clock        => Clocks(jsonGetInteger(PlatCFG, "BusWrapperID/" & integer'image(i))),  -- TODO: Map structure clock to clock of its wrapper
+                    --Clock        => Clocks(jsonGetInteger(PlatCFG, "BusWrapperID/" & integer'image(i))),  -- TODO: Map structure clock to clock of its wrapper
+                    Clock        => Clocks(BusWrapperIDs(i)),  -- TODO: Map structure clock to clock of its wrapper
                     Reset        => Reset,  -- Global reset, from entity interface
                     PEInterfaces => BusInterfaces(i)  -- TODO: Map to bus interface
                 );
-
-            assert false report "Instantiated bus " & integer'image(i) & " with " & integer'image(AmountOfPEsInBuses(i) + 1) & " elements" severity note;
 
         end generate BusesGen;
 
@@ -149,24 +156,25 @@ begin
     CrossbarCond: if AmountOfCrossbars > 0 generate
 
         CrossbarsGen: for i in 0 to AmountOfCrossbars - 1 generate
-            signal WrapperID: integer_vector(0 to AmountOfBuses - 1);
+        
+            subtype CrossbarPEAddresses_t is HalfDataWidth_vector(0 to SizeOfLargestCrossbar);  -- PEs + wrapper
+            type CrossbarPEAddresses_vector is array(natural range <>) of CrossbarPEAddresses_t;
+            
+            function GetCrossbarPEAddresses(PEInfo: PEInfo_vector) return CrossbarPEAddresses_vector is
+                variable CrossbarPEAddresses: CrossbarPEAddresses_vector;
+            begin
+            
+                for i in 0 to AmountOfBuses - 1 loop
+                    CrossbarPEAddresses(i) := GetPEAddresses(PlatCFG, PEInfo, "XBR", i);
+                end loop;
+                
+                return CrossbarPEAddresses;
+            
+            end function GetCrossbarPEAddresses;
+            
+            constant CrossbarPEAddresses: CrossbarPEAddresses_vector(0 to AmountOfCrossbars - 1) := GetCrossbarPEAddresses(PEInfo);
+        
         begin
-
-            WrapperID(i) <= jsonGetInteger(PlatCFG, "CrossbarWrapperID/" & integer'image(i));
-
-            -- Passes PE interface to crossbar interface
-            LocalPortInterfaces(WrapperID(i)).ClockRx <= CrossbarInterfaces(i)(0).ClockRx;
-            LocalPortInterfaces(WrapperID(i)).Rx <= CrossbarInterfaces(i)(0).Rx;
-            LocalPortInterfaces(WrapperID(i)).DataIn <= CrossbarInterfaces(i)(0).DataIn;
-            LocalPortInterfaces(WrapperID(i)).CreditI <= CrossbarInterfaces(i)(0).CreditI;
-            CrossbarInterfaces(i)(0).ClockTx <= LocalPortInterfaces(WrapperID(i)).ClockTx;
-            CrossbarInterfaces(i)(0).Tx <= LocalPortInterfaces(WrapperID(i)).Tx;
-            CrossbarInterfaces(i)(0).DataOut <= LocalPortInterfaces(WrapperID(i)).DataOut;
-            CrossbarInterfaces(i)(0).CreditO <= LocalPortInterfaces(WrapperID(i)).CreditO;
-
-            -- Adds this wrapper's address in XY coordinates to PEAddresses array to be passed to its crossbar
-            CrossbarPEAddresses(i)(0)(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
-            CrossbarPEAddresses(i)(0)(HalfDataWidth - 1 downto 0) <= RouterAddress(WrapperID(i), SquareNoCBound);
 
             CrossbarInstance: entity work.Crossbar
 
@@ -175,11 +183,12 @@ begin
                     AmountOfPEs      => AmountOfPEsInCrossbars(i) + 1,
                     PEAddresses      => CrossbarPEAddresses(i),
                     BridgeBufferSize => BridgeBufferSize,
-                    IsStandalone     => false
+                    IsStandalone     => IsStandaloneCrossbar
                 )
                 port map(
                     --Clock        => RouterInterfaces(WrapperID(i)).Clock,
-                    Clock        => Clocks(jsonGetInteger(PlatCFG, "CrossbarWrapperID/" & integer'image(i))),
+                    --Clock        => Clocks(jsonGetInteger(PlatCFG, "CrossbarWrapperID/" & integer'image(i))),
+                    Clock        => Clocks(CrossbarWrapperIDs(i)),
                     Reset        => Reset,  -- Global reset, from entity interface
                     PEInterfaces => CrossbarInterfaces(i)  -- TODO: Map to crossbar interface
                 );
@@ -194,80 +203,56 @@ begin
     -- Connects PE interfaces passed from top entity to local port of routers and into dedicated structures
     PEConnectGen: for i in 0 to AmountOfPEs - 1 generate
 
-        -- GAMBIARRA. Temporary values since VHDL doesnt allow variables in a for generate statement
-        -- Used as a name replacement for jsonGetInteger() call
-        signal busID, busPosition, crossbarID, crossbarPosition, routerPosition: integer_vector(0 to AmountOfPEs - 1);
-
-    begin
-
-        -- Maps Local port a router to this PE interface, provided through HyHeMPS entity interface
-        ConnectToNoC: if jsonGetBoolean(PlatCFG, "isNoC/" & integer'image(i)) generate
-
-            routerPosition(i) <= jsonGetInteger(PlatCFG, "WrapperAddresses/" & integer'image(i));  -- Returns addr in base NoC of given PE ID
-
-            LocalPortInterfaces(routerPosition(i)).ClockRx <= PEInterfaces(i).ClockTx;
-            LocalPortInterfaces(routerPosition(i)).Rx <= PEInterfaces(i).Tx;
-            LocalPortInterfaces(routerPosition(i)).DataIn <= PEInterfaces(i).DataOut;
-            LocalPortInterfaces(routerPosition(i)).CreditI <= PEInterfaces(i).CreditO;
-            PEInterfaces(i).ClockRx <= LocalPortInterfaces(routerPosition(i)).ClockTx;
-            PEInterfaces(i).Rx <= LocalPortInterfaces(routerPosition(i)).Tx;
-            PEInterfaces(i).DataIn <= LocalPortInterfaces(routerPosition(i)).DataOut;
-            PEInterfaces(i).CreditI <= LocalPortInterfaces(routerPosition(i)).CreditO;
-
-            assert false report "PE ID " & integer'image(i) & " connected to local port of router " & integer'image(routerPosition(i)) severity note;
-
-        end generate ConnectToNoC;
-
-
-        -- Adds this PE interface to its respective bus interface
-        ConnectToBus: if jsonGetBoolean(PlatCFG, "isBus/" & integer'image(i)) generate
-
-            busID(i) <= jsonGetInteger(PlatCFG, "busID/" & integer'image(i));
-            busPosition(i) <= getPEPosInBus(PlatCFG, i, busID(i));
-
-            -- Passes this PE's interface onto its respective place in its Bus interface
-            BusInterfaces(busID(i))(busPosition(i)).ClockTx <= PEInterfaces(i).ClockTx;
-            BusInterfaces(busID(i))(busPosition(i)).Tx <= PEInterfaces(i).Tx;
-            BusInterfaces(busID(i))(busPosition(i)).DataOut <= PEInterfaces(i).DataOut;
-            PEInterfaces(i).CreditI <= BusInterfaces(busID(i))(busPosition(i)).CreditI;
+        ConnectToNoC: if PEInfo(i).InterfacingStructure = "NOC" generate
             
-            PEInterfaces(i).ClockRx <= BusInterfaces(busID(i))(busPosition(i)).ClockRx;
-            PEInterfaces(i).Rx <= BusInterfaces(busID(i))(busPosition(i)).Rx;
-            PEInterfaces(i).DataIn <= BusInterfaces(busID(i))(busPosition(i)).DataIn;
-            BusInterfaces(busID(i))(busPosition(i)).CreditO <= PEInterfaces(i).CreditO;
+            -- Input interface of local port of this PE's router
+            LocalPortInterfaces(PEInfo(i).PosInStruct).ClockRx <= PEInterfaces(i).ClockTx;
+            LocalPortInterfaces(PEInfo(i).PosInStruct).Rx <= PEInterfaces(i).Tx;
+            LocalPortInterfaces(PEInfo(i).PosInStruct).DataIn <= PEInterfaces(i).DataOut;
+            PEInterfaces(i).CreditI <= LocalPortInterfaces(PEInfo(i).PosInStruct).CreditO;
+            
+            -- Output interface of local port of this PE's router
+            PEInterfaces(i).ClockRx <= LocalPortInterfaces(PEInfo(i).PosInStruct).ClockTx;
+            PEInterfaces(i).Rx <= LocalPortInterfaces(PEInfo(i).PosInStruct).Tx;
+            PEInterfaces(i).DataIn <= LocalPortInterfaces(PEInfo(i).PosInStruct).DataOut;
+            LocalPortInterfaces(PEInfo(i).PosInStruct).CreditI <= PEInterfaces(i).CreditO;
 
-            -- Adds this PE's address in XY coordinates to PEAddresses array to be passed to its bus
-            BusPEAddresses(busID(i))(busPosition(i))(HalfDataWidth - 1 downto 0) <= RouterAddress(i, SquareNoCBound);
-            BusPEAddresses(busID(i))(busPosition(i))(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
+            assert false report "PE ID " & integer'image(i) & " connected to local port of router " & integer'image(WrapperAddresses(i)) severity note;
+        
+        end generate ConnectToNoC;
+        
+        ConnectToBus: if PEInfo(i).InterfacingStructure = "BUS" generate
+        
+            -- Input interface of local port of this PE's bus
+            BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).ClockTx <= PEInterfaces(i).ClockTx;
+            BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).Tx <= PEInterfaces(i).Tx;
+            BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).DataOut <= PEInterfaces(i).DataOut;
+            PEInterfaces(i).CreditI <= BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).CreditI;
+            
+            -- Output interface of local port of this PE's bus
+            PEInterfaces(i).ClockRx <= BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).ClockRx;
+            PEInterfaces(i).Rx <= BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).Rx;
+            PEInterfaces(i).DataIn <= BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).DataIn;
+            BusInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).CreditO <= PEInterfaces(i).CreditO;
             
             assert false report "PE ID " & integer'image(i) & " connected to bus " & integer'image(busID(i)) & " at bus position " & integer'image(busPosition(i)) severity note;
-
+        
         end generate ConnectToBus;
-
-
-        -- Adds this PE interface to its respective crossbar interface
-        ConnectToCrossbar: if jsonGetBoolean(PlatCFG, "isCrossbar/" & integer'image(i)) generate
-
-            crossbarID(i) <= jsonGetInteger(PlatCFG, "crossbarID/" & integer'image(i));
-            crossbarPosition(i) <= getPEPosInCrossbar(PlatCFG, i, crossbarID(i));
-
-            -- Passes this PE's interface onto its respective place in its Crossbar interface
-            CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).ClockTx <= PEInterfaces(i).ClockTx;
-            CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).Tx <= PEInterfaces(i).Tx;
-            CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).DataOut <= PEInterfaces(i).DataOut;
-            PEInterfaces(i).CreditI <= CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).CreditI;
+        
+        ConnectToCrossbar: if PEInfo(i).InterfacingStructure = "XBR" generate
+        
+            CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).ClockTx <= PEInterfaces(i).ClockTx;
+            CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).Tx <= PEInterfaces(i).Tx;
+            CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).DataOut <= PEInterfaces(i).DataOut;
+            PEInterfaces(i).CreditI <= CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).CreditI;
             
-            PEInterfaces(i).ClockRx <= CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).ClockRx;
-            PEInterfaces(i).Rx <= CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).Rx;
-            PEInterfaces(i).DataIn <= CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).DataIn;
-            CrossbarInterfaces(crossbarID(i))(crossbarPosition(i)).CreditO <= PEInterfaces(i).CreditO;
-
-            -- Adds this PE's address in XY coordinates to PEAddresses array to be passed to its crossbar
-            CrossbarPEAddresses(crossbarID(i))(crossbarPosition(i))(HalfDataWidth - 1 downto 0) <= RouterAddress(i, SquareNoCBound);
-            CrossbarPEAddresses(crossbarID(i))(crossbarPosition(i))(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
-
-            assert false report "PE ID " & integer'image(i) & " connected to crossbar " & integer'image(crossbarID(i)) & " at crossbar position " & integer'image(crossbarPosition(i)) severity note;
-
+            PEInterfaces(i).ClockRx <= CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).ClockRx;
+            PEInterfaces(i).Rx <= CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).Rx;
+            PEInterfaces(i).DataIn <= CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).DataIn;
+            CrossbarInterfaces(PEInfo(i).StructID)(PEInfo(i).PosInStruct).CreditO <= PEInterfaces(i).CreditO;
+            
+            assert false report "PE ID " & integer'image(i) & " connected to local port of router " & integer'image(WrapperAddresses(i)) severity note;
+        
         end generate ConnectToCrossbar;
 
     end generate PEConnectGen;

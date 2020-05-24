@@ -32,13 +32,14 @@ entity Hermes is
 	port(
 		Clocks: std_logic_vector;
 		Reset: std_logic;
-		LocalPortInterfaces: inout RouterPort_vector
+		--LocalPortInterfaces: inout RouterPort_vector
+		LocalPortInterfaces: inout PEInterface_vector
 	);
 	
 end entity Hermes;
 
 
-architecture RTL of Hermes is
+architecture Mesh of Hermes is
 
     constant AmountOfNoCNodes: integer := NoCXSize * NoCYSize;
 
@@ -200,4 +201,4 @@ begin
 
     end generate InterfaceGen;
 	
-end architecture RTL;
+end architecture Mesh;

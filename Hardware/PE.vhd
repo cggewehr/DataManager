@@ -123,11 +123,11 @@ begin
       	)
       	port map(
 
-      		Clock    => ClockRx,
-      		Reset    => Reset,
-      		DataIn   => DataIn,
-      		DataInAV => Rx,
-      		InputBufferReadRequest => CreditO
+      		Clock   => ClockRx,
+      		Reset   => Reset,
+      		DataIn  => DataIn,
+      		Rx      => Rx,
+      		CreditO => CreditO
 
       	);
 

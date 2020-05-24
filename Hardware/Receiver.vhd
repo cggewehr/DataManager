@@ -24,6 +24,9 @@ library ieee;
 library work;
 	use work.HyHeMPS_PKG.all;
 
+library std;
+    use std.textio.all;
+
 
 entity Receiver is
 
@@ -37,8 +40,8 @@ entity Receiver is
 
 		-- Input Buffer Interface
 		DataIn: in DataWidth_t;
-		DataInAV: in std_logic;
-		InputBufferReadRequest: out std_logic
+		Rx: in std_logic;
+		CreditO: out std_logic
 	);
 	
 end entity Receiver;
@@ -46,11 +49,14 @@ end entity Receiver;
 
 architecture RTL of Receiver is
 
-	signal messageCounter: integer range 0 to UINT32MaxValue := 0;
+    constant HeaderSize: integer := 2;
+
+	signal messageCounter: integer := 0;
     signal flitCounter: integer := 0;
-    signal currentPayloadSize: integer := 0;
-    signal latestMessageTimestamp: DataWidth_t := (others => '0');
-    signal latestSourceID: integer := 0;
+    
+    signal targetID: integer := 0;
+    signal payloadSize: integer := 0;
+    signal sourceID: integer := 0;
     signal outputTimestamp: integer := 0;
 
     file InboundLog: text open write_mode is InboundLogFilename;
@@ -63,35 +69,36 @@ begin
     begin
 
         -- Read request signal will always be set to '1' unless Reset = '1'
-        InputBufferReadRequest <= '1';
+        CreditO <= '1';
 
         if Reset = '1' then
 
             -- Set default values and disables buffer read request
-            InputBufferReadRequest <= '0';
+            CreditO <= '0';
             flitCounter <= 0;
             messageCounter <= 0;
 
         elsif rising_edge(Clock) then
             
             -- Checks for a new flit available on input buffer
-            if DataInAV = '1' then
+            if Rx = '1' then
 
                 -- Checks for an ADDR flit (Assumes header = [ADDR, SIZE])
                 if flitCounter = 0 then
 
                     --latestMessageTimestamp <= std_logic_vector(to_unsigned(clockCounter, DataWidth));
-                    null;
+                    targetID <= to_integer(unsigned(DataIn));
+                    --null;
 
                 -- Checks for a SIZE flit (Assumes header = [ADDR, SIZE])
                 elsif flitCounter = 1 then
 
-                    currentPayloadSize <= to_integer(unsigned(DataIn));
+                    payloadSize <= to_integer(unsigned(DataIn));
 
                 -- Saves source ID (Assumes first payload flit containts PEPOS of sender)
                 elsif flitCounter = 2 then
 
-                    latestSourceID <= to_integer(unsigned(DataIn));
+                    sourceID <= to_integer(unsigned(DataIn));
 
                 elsif flitCounter = 3 then
 
@@ -102,7 +109,7 @@ begin
                 -- Increments counter if its less than current message size or SIZE flit has not yet been received
                 -- "HeaderSize" is read from injector JSON config
                 --if (flitCounter < currentPayloadSize) or (flitCounter < HeaderSize) then
-                if (flitCounter < currentPayloadSize + HeaderSize - 1) or (flitCounter < HeaderSize) then
+                if (flitCounter < payloadSize + HeaderSize - 1) or (flitCounter < HeaderSize) then
 
                     flitCounter <= flitCounter + 1;
 
@@ -113,16 +120,15 @@ begin
 
                     -- Write to log file ( | target ID | source ID | payload size | output timestamp | input timestamp | )
                     --write(InboundLogLine, integer'image(messageCounter) & " ");
-                    write(InboundLogLine, integer'image(PEPos) & " ");
-                    write(InboundLogLine, integer'image(latestSourceID) & " ");
-                    write(InboundLogLine, integer'image(currentPayloadSize) & " ");
+                    write(InboundLogLine, integer'image(targetID) & " ");
+                    write(InboundLogLine, integer'image(sourceID) & " ");
+                    write(InboundLogLine, integer'image(payloadSize) & " ");
                     write(InboundLogLine, integer'image(outputTimestamp) & " ");
-                    --write(InboundLogLine, integer'image(clockCounter));
                     write(InboundLogLine, integer'image(now / 1 ns));
                     writeline(InboundLog, InboundLogLine);
 
                     -- Signals a message has been received to DPD injector and updates counters
-                    messageCounter <= incr(messageCounter, UINT32MaxValue, 0);
+                    messageCounter <= incr(messageCounter, 10000000, 0);
                     --semaphore <= incr(Semaphore, UINT32MaxValue, 0);
                     flitCounter <= 0;
 

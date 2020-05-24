@@ -30,7 +30,7 @@ entity Crossbar is
 	generic(
 		ArbiterType: string;
 		AmountOfPEs: integer;
-		PEAddresses: DataWidth_vector;  -- As XY coordinates
+		PEAddresses: HalfDataWidth_vector;  -- As XY coordinates
 		BridgeBufferSize: integer;
 		IsStandalone: boolean
 	);
