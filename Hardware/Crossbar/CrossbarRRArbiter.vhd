@@ -35,13 +35,13 @@ entity CrossbarRRArbiter is
 		AmountOfPEs : integer
 	);
 	port (
-		Clock : in std_logic;
-		Reset : in std_logic;
+		Clock    : in std_logic;
+		Reset    : in std_logic;
 
-		Req   : in std_logic_vector(0 to AmountOfPEs - 1);
-		Ack   : in std_logic_vector(0 to AmountOfPEs - 1);
-		Grant : out std_logic_vector(0 to AmountOfPEs - 1);
-		NewGrant: out std_logic
+		Req      : in std_logic_vector(0 to AmountOfPEs - 1);
+		Ack      : in std_logic_vector(0 to AmountOfPEs - 1);
+		Grant    : out std_logic_vector(0 to AmountOfPEs - 1);
+		NewGrant : out std_logic
 	);
 
 end entity CrossbarRRArbiter;
@@ -49,12 +49,12 @@ end entity CrossbarRRArbiter;
 
 architecture RTL of CrossbarRRArbiter is
 
-	signal grant_q  : std_logic_vector(0 to AmountOfPEs - 1);
-	signal pre_req  : std_logic_vector(0 to AmountOfPEs - 1);
-	signal sel_gnt  : std_logic_vector(0 to AmountOfPEs - 1);
-	signal isol_lsb : std_logic_vector(0 to AmountOfPEs - 1);
-	signal mask_pre : std_logic_vector(0 to AmountOfPEs - 1);
-	signal win      : std_logic_vector(0 to AmountOfPEs - 1);
+	signal grant_q    : std_logic_vector(0 to AmountOfPEs - 1);
+	signal pre_req    : std_logic_vector(0 to AmountOfPEs - 1);
+	signal sel_gnt    : std_logic_vector(0 to AmountOfPEs - 1);
+	signal isol_lsb   : std_logic_vector(0 to AmountOfPEs - 1);
+	signal mask_pre   : std_logic_vector(0 to AmountOfPEs - 1);
+	signal win        : std_logic_vector(0 to AmountOfPEs - 1);
 	signal ackReduced : std_logic;
 
 	-- Performs "or" operation between all elements of a given std_logic_vector

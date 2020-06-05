@@ -88,10 +88,8 @@ begin
 	-- Active only after 1st flit of current messages (containing ADDR of target) is known
 	PERx <= (targetIndex => BusTx, others => '0') when busBeingUsed = '1' else (others => '0');
 
-
 	-- BusCredit gets Credit_o of msg target PE
 	BusCredit <= PECredit(targetIndex) when busBeingUsed = '1' else '0';
-
 
 	-- Moore FSM, controls input interface of target PE as longs as the current message is being transmitted
 	process(Clock)  -- Synchronous reset
@@ -128,7 +126,8 @@ begin
 
 				if BusTx = '1' then
 
-					targetAddr := BusData(HalfDataWidth - 1 downto 0);
+                    -- PE ID @ most significative bits of first flit
+					targetAddr := BusData(DataWidth - 1 downto HalfDataWidth);
 					targetIndex <= GetIndexOfAddr(PEAddresses, targetAddr);
 					busBeingUsed <= '1';
 					

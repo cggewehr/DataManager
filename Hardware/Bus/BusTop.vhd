@@ -167,7 +167,8 @@ begin
 	-- Connects PE interfaces to bus 
 	PEConnectGen: for i in 0 to AmountOfPEs - 1 generate
 	
-		-- PE input interface (DataIn to be set at the end of this generate statement)
+		-- PE input interface
+		PEInterfaces(i).DataIn <= BusData;
 		PEInterfaces(i).ClockRx <= Clock;
 		PEInterfaces(i).Rx <= controlRx(i);
 		controlCredit(i) <= PEInterfaces(i).CreditO;
@@ -177,24 +178,6 @@ begin
 		busTx <= PEInterfaces(i).Tx;
 		PEInterfaces(i).CreditI <= busCredit;
 		
-		-- This "i" corresponds to a wrapper, map its DataIn to dataToWrapper in order to be able to invert ADDR flit (busDataInv)
-		WrapperConnect: if i = 0 generate
-	        PEInterfaces(i).DataIn <= dataToWrapper;
-	    end generate WrapperConnect;
-	    
-	    -- This "i" corresponds to a PE, map its DataIn to BusData, because inverting ADDR flit is not necessary 
-	    BusConnect: if i /= 0 generate
-	        PEInterfaces(i).DataIn <= BusData;
-	    end generate BusConnect;
-
 	end generate PEConnectGen;
-	
-	-- High order bits <= 0, low order bits <= Target Wrapper ADDR (NoC router decides next hop based on low order bits of ADDR flit)
-	busDataInv(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
-	busDataInv(HalfDataWidth downto 0) <= busData(HalfDataWidth - 1 downto 0);
-	
-	-- Inverts ADDR flit (<= busDataInv), does nothing to SIZE and payload flits
-	dataToWrapper <= busData when IsStandalone or controlChangeFlit = '0' else
-	                 busDataInv;
-	
+
 end architecture RTL;

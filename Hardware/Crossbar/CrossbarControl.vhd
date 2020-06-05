@@ -130,19 +130,14 @@ begin
 		end if;
 
 	end process;
-	
-	-- High order bits <= 0, low order bits <= Target Wrapper ADDR (NoC router decides next hop based on low order bits of ADDR flit)
-	crossbarDataInv(DataWidth - 1 downto HalfDataWidth) <= (others => '0');
-	crossbarDataInv(HalfDataWidth downto 0) <= DataInMux(sourceIndex)(HalfDataWidth - 1 downto 0);
 
-    -- Inverts ADDR flit (<= busDataInv), does nothing to SIZE and payload flits
-	PEDataIn <= DataInMux(sourceIndex) when IsStandalone or NewGrant = '0' else
-	            crossbarDataInv;
+    -- Mutiplexes DataIn based on "sourceIndex"
+	PEDataIn <= DataInMux(sourceIndex);
 
-    -- 
+    -- Mutiplexes Rx based on "sourceIndex"
 	PERx <= OrReduce(RXMux);
 	
-	-- 
+	-- Mutiplexes CreditI based on "sourceIndex"
 	CreditO <= (selfIndex => PECreditO, others => '0');
 	
 end architecture RTL;

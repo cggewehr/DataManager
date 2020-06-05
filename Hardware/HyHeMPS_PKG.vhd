@@ -175,64 +175,45 @@ package body HyHeMPS_PKG is
         
         variable Headers: HeaderFlits_t(TargetPEsArray'range, 0 to HeaderSize - 1);
         variable headerFlitString: string(1 to 4);
-        variable wrapperAddress: integer;
+        
         variable timestampFlag: integer := jsonGetInteger(InjCFG, "timestampFlag");
-        --constant NUMBER_PROCESSORS_X: integer := jsonGetInteger(PlatformJSONConfig, "NUMBER_PROCESSORS_X");
+        constant AmountOfPEs: integer := jsonGetInteger(PlatCFG, "AmountOfPEs");
         constant NoCXSize: integer := jsonGetInteger(PlatCFG, "BaseNoCDimensions/0");
         constant SquareNoCBound: integer := jsonGetInteger(PlatCFG, "SquareNoCBound");
+        constant WrapperAddresses: integer_vector(0 to AmountOfPEs - 1) := jsonGetIntegerArray(PlatCFG, "WrapperAddresses");
 	    
-        -- Bus Adaptations
-	    variable myID:		integer := jsonGetInteger(InjCFG, "PEPos");
+	    variable myID: integer := jsonGetInteger(InjCFG, "PEPos");
         variable myWrapper:	integer := jsonGetInteger(PlatCFG, "WrapperAddresses/" & integer'image(myID));
+        variable targetID: integer;
+        variable targetWrapper: integer;
 
     begin
 
-    	report "Compiling header flits" severity note;
+    	--report "Compiling header flits" severity note;
 
         BuildHeaderLoop: for target in TargetPEsArray'range loop
-
-        	report "    Compiling header for target PE " & integer'image(TargetPEsArray(target)) severity note;
+        
+        	targetID := TargetPEsArray(target);
+        	targetWrapper := WrapperAddresses(TargetID);
+        	
+        	--report "    Compiling header for target PE " & integer'image(targetID) severity note;
 
             BuildFlitLoop: for flit in 0 to (HeaderSize - 1) loop
-
-                --                                                                               Translates loop iterator to PE ID
-                headerFlitString := jsonGetString(InjCFG, ( "Headers/" & "Header" & integer'image(TargetPEsArray(target)) & "/" & integer'image(flit)));
 
                 -- A header flit can be : "ADDR" (Address of target PE in network)
                 --                        "SIZE" (Size of payload in this message)
                 --                        "TIME" (Timestamp (in clock cycles) of when first flit of message leaves the injector)
                 --                        "BLNK" (Fills with zeroes)
+                
+                headerFlitString := jsonGetString(InjCFG, ( "Headers/" & "Header" & integer'image(targetID) & "/" & integer'image(flit)));
 
                 if headerFlitString = "ADDR" then 
 
-                    -- Get target's wrapper address
-                    wrapperAddress := jsonGetInteger(PlatCFG, "WrapperAddresses/" & integer'image(TargetPEsArray(target)));
-
-                    --if wrapperAddress = 0 or wrapperAddress = myWrapper then --If the target is: In NoC OR In the same structure
-                    if wrapperAddress = myWrapper then--or wrapperAddress = TargetPEsArray(target) then -- If the target is in the same structure (Bus or XBR) OR is in base NoC
- 
-                        -- Target is in same structure: Global XY coordinates @ least significative bits, most significative bits are irrelevant
-        	         	--Headers(target, flit)((DataWidth/2) - 1 downto 0):= RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
-                        Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(TargetPEsArray(target), SquareNoCBound);
-            		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
-
-                    elsif wrapperAddress = TargetPEsArray(target) then  -- Target is in NoC
-    
-                        --Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
-                        Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(TargetPEsArray(target), SquareNoCBound);
-            		    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := (others => '0');
-
-        	        else  -- Combine the wrapper address with the PE address (target is in different structure)			
-
-        		        -- Global XY coordinates (in square NoC) @ most significative bits (X coordinate @ most significative parts, & Y coordinates @ least significative parts)
-        		        --Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), NUMBER_PROCESSORS_X);
-                        Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(TargetPEsArray(target), SquareNoCBound);
-
-        		        -- Wrapper XY coordinates (in base NoC) @ least significative bits
-        		        --Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NUMBER_PROCESSORS_X);
-        		        Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(wrapperAddress, NoCXSize);
-
-        	        end if;
+                    -- Wrapper Address @ least significative bits (used for NoC routing)
+                    Headers(target, flit)((DataWidth/2) - 1 downto 0) := RouterAddress(targetWrapper, NoCXSize);
+                    
+                    -- PE ID @ most significative bits (unique network address)
+                    Headers(target, flit)(DataWidth - 1 downto DataWidth/2) := RouterAddress(targetID, SquareNoCBound);
 
                 elsif headerFlitString = "SIZE" then
 
@@ -248,11 +229,11 @@ package body HyHeMPS_PKG is
 
                 else
 
-                     report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
+                     --report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is not defined" severity warning;
 
                 end if;
 
-                report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
+                --report "        Flit " & integer'image(flit) & " of header of message to be delivered to PE ID " & integer'image(TargetPEsArray(target)) & " is " & headerFlitString & " = " & integer'image(to_integer(unsigned(Headers(target, flit)))) severity note;
 
             end loop BuildFlitLoop;
 
